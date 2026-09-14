@@ -27,34 +27,33 @@
       max-width: 480px;
       margin: 0 auto;
       padding: 8px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 4px;
+      padding: 6px 4px;
       flex-shrink: 0;
     }
     .header h1 {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       font-weight: 700;
       letter-spacing: 1px;
     }
     .stats {
       display: flex;
-      gap: 16px;
+      gap: 14px;
       font-size: 0.85rem;
     }
-    .stat {
-      text-align: center;
-    }
+    .stat { text-align: center; }
     .stat-label {
       color: #94a3b8;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
     }
     .stat-value {
       font-weight: 700;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       color: #38bdf8;
     }
     .main {
@@ -81,10 +80,10 @@
       max-height: 100%;
     }
     .side {
-      width: 90px;
+      width: 88px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       flex-shrink: 0;
     }
     .panel {
@@ -95,9 +94,9 @@
       text-align: center;
     }
     .panel-title {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: #94a3b8;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     #next {
       display: block;
@@ -110,57 +109,61 @@
       color: #e2e8f0;
       padding: 10px 8px;
       border-radius: 8px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s;
       width: 100%;
     }
     .btn:active { background: #475569; }
-    .btn-primary {
-      background: #2563eb;
-    }
+    .btn-primary { background: #2563eb; }
     .btn-primary:active { background: #1d4ed8; }
-    .btn-danger {
-      background: #dc2626;
-    }
+    .btn-danger { background: #dc2626; }
+
+    /* ===== 新按键布局 ===== */
     .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      grid-template-rows: auto auto;
+      display: flex;
+      flex-direction: column;
       gap: 8px;
-      padding: 10px 0 4px;
+      padding: 10px 0 2px;
       flex-shrink: 0;
     }
+    .ctrl-row {
+      display: flex;
+      gap: 8px;
+    }
     .ctrl-btn {
+      flex: 1;
       background: #1e293b;
       border: 2px solid #334155;
-      border-radius: 12px;
+      border-radius: 14px;
       color: #e2e8f0;
-      font-size: 1.4rem;
-      height: 52px;
+      font-size: 1.5rem;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       user-select: none;
+      font-weight: 500;
     }
     .ctrl-btn:active {
       background: #334155;
-      transform: scale(0.96);
+      transform: scale(0.97);
     }
-    .ctrl-left { grid-column: 1; grid-row: 2; }
-    .ctrl-down { grid-column: 2; grid-row: 2; }
-    .ctrl-right { grid-column: 3; grid-row: 2; }
-    .ctrl-rotate { grid-column: 2; grid-row: 1; }
-    .ctrl-drop {
-      grid-column: 1 / 4;
-      grid-row: 3;
-      height: 44px;
+    .ctrl-btn.wide {
       font-size: 0.95rem;
       font-weight: 600;
       letter-spacing: 1px;
     }
+    .ctrl-btn.accent {
+      background: #1e3a5f;
+      border-color: #2563eb;
+      color: #93c5fd;
+    }
+    .ctrl-btn.accent:active {
+      background: #1e40af;
+    }
+
     .overlay {
       position: absolute;
       inset: 0;
@@ -188,8 +191,8 @@
       font-size: 1rem;
     }
     @media (min-width: 400px) {
-      .side { width: 100px; }
-      .ctrl-btn { height: 56px; }
+      .side { width: 96px; }
+      .ctrl-btn { height: 60px; }
     }
   </style>
 </head>
@@ -242,12 +245,17 @@
       </div>
     </div>
 
+    <!-- 新布局：第一行方向键，第二行旋转 + 硬降 -->
     <div class="controls">
-      <div class="ctrl-btn ctrl-rotate" id="btnRotate">↻</div>
-      <div class="ctrl-btn ctrl-left" id="btnLeft">←</div>
-      <div class="ctrl-btn ctrl-down" id="btnDown">↓</div>
-      <div class="ctrl-btn ctrl-right" id="btnRight">→</div>
-      <div class="ctrl-btn ctrl-drop" id="btnDrop">一键下落</div>
+      <div class="ctrl-row">
+        <div class="ctrl-btn" id="btnLeft">←</div>
+        <div class="ctrl-btn" id="btnDown">↓</div>
+        <div class="ctrl-btn" id="btnRight">→</div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-btn wide" id="btnRotate">↻ 旋转</div>
+        <div class="ctrl-btn wide accent" id="btnDrop">一键下落</div>
+      </div>
     </div>
   </div>
 
