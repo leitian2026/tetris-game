@@ -1,8 +1,9 @@
-const CACHE = 'tetris-v1';
+const CACHE = 'tetris-v2';
 const ASSETS = [
   './',
   './index.html',
   './game.js',
+  './ui.js',
   './manifest.json'
 ];
 
