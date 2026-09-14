@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>俄罗斯方块</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230f172a'/><rect x='20' y='20' width='25' height='25' fill='%233b82f6'/><rect x='45' y='20' width='25' height='25' fill='%23ef4444'/><rect x='20' y='45' width='25' height='25' fill='%2322c55e'/><rect x='45' y='45' width='25' height='25' fill='%23eab308'/></svg>" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      height: 100%;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 8px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 4px;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .stats {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-label {
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    .stat-value {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #38bdf8;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      gap: 10px;
+      min-height: 0;
+    }
+    .board-wrap {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #1e293b;
+      border-radius: 12px;
+      border: 2px solid #334155;
+      overflow: hidden;
+      position: relative;
+    }
+    #board {
+      display: block;
+      image-rendering: pixelated;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .side {
+      width: 90px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .panel {
+      background: #1e293b;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      padding: 8px;
+      text-align: center;
+    }
+    .panel-title {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    #next {
+      display: block;
+      margin: 0 auto;
+      image-rendering: pixelated;
+    }
+    .btn {
+      background: #334155;
+      border: none;
+      color: #e2e8f0;
+      padding: 10px 8px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      width: 100%;
+    }
+    .btn:active { background: #475569; }
+    .btn-primary {
+      background: #2563eb;
+    }
+    .btn-primary:active { background: #1d4ed8; }
+    .btn-danger {
+      background: #dc2626;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 8px;
+      padding: 10px 0 4px;
+      flex-shrink: 0;
+    }
+    .ctrl-btn {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 12px;
+      color: #e2e8f0;
+      font-size: 1.4rem;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .ctrl-btn:active {
+      background: #334155;
+      transform: scale(0.96);
+    }
+    .ctrl-left { grid-column: 1; grid-row: 2; }
+    .ctrl-down { grid-column: 2; grid-row: 2; }
+    .ctrl-right { grid-column: 3; grid-row: 2; }
+    .ctrl-rotate { grid-column: 2; grid-row: 1; }
+    .ctrl-drop {
+      grid-column: 1 / 4;
+      grid-row: 3;
+      height: 44px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+      border-radius: 10px;
+    }
+    .overlay.hidden { display: none; }
+    .overlay h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+    .overlay p {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+    .overlay .btn {
+      width: auto;
+      padding: 12px 28px;
+      font-size: 1rem;
+    }
+    @media (min-width: 400px) {
+      .side { width: 100px; }
+      .ctrl-btn { height: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>TETRIS</h1>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">分数</div>
+          <div class="stat-value" id="score">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">等级</div>
+          <div class="stat-value" id="level">1</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">消除</div>
+          <div class="stat-value" id="lines">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="board-wrap">
+        <canvas id="board" width="300" height="600"></canvas>
+        <div class="overlay" id="startOverlay">
+          <h2>俄罗斯方块</h2>
+          <p>点击开始游戏</p>
+          <button class="btn btn-primary" id="startBtn">开始</button>
+        </div>
+        <div class="overlay hidden" id="pauseOverlay">
+          <h2>已暂停</h2>
+          <button class="btn btn-primary" id="resumeBtn">继续</button>
+        </div>
+        <div class="overlay hidden" id="gameoverOverlay">
+          <h2>游戏结束</h2>
+          <p id="finalScore">分数: 0</p>
+          <button class="btn btn-primary" id="restartBtn">再来一局</button>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="panel">
+          <div class="panel-title">下一个</div>
+          <canvas id="next" width="80" height="80"></canvas>
+        </div>
+        <button class="btn" id="pauseBtn">暂停</button>
+        <button class="btn btn-danger" id="resetBtn">重开</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-btn ctrl-rotate" id="btnRotate">↻</div>
+      <div class="ctrl-btn ctrl-left" id="btnLeft">←</div>
+      <div class="ctrl-btn ctrl-down" id="btnDown">↓</div>
+      <div class="ctrl-btn ctrl-right" id="btnRight">→</div>
+      <div class="ctrl-btn ctrl-drop" id="btnDrop">一键下落</div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
