@@ -24,46 +24,63 @@
       display: flex;
       flex-direction: column;
       height: 100%;
-      max-width: 480px;
+      max-width: 520px;
       margin: 0 auto;
-      padding: 8px;
-      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      padding: 6px;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 4px;
+      padding: 4px 2px 6px;
       flex-shrink: 0;
     }
     .header h1 {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 700;
       letter-spacing: 1px;
     }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .stats {
       display: flex;
-      gap: 14px;
-      font-size: 0.85rem;
+      gap: 12px;
+      font-size: 0.8rem;
     }
     .stat { text-align: center; }
-    .stat-label {
-      color: #94a3b8;
-      font-size: 0.68rem;
-    }
+    .stat-label { color: #94a3b8; font-size: 0.65rem; }
     .stat-value {
       font-weight: 700;
-      font-size: 1.05rem;
+      font-size: 1rem;
       color: #38bdf8;
     }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .icon-btn:active { background: #334155; }
+
     .main {
       flex: 1;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       min-height: 0;
+      justify-content: center;
     }
     .board-wrap {
-      flex: 1;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -72,15 +89,20 @@
       border: 2px solid #334155;
       overflow: hidden;
       position: relative;
+      /* 由 JS 控制宽高比例 */
+      width: var(--board-w, 100%);
+      max-width: 100%;
+      aspect-ratio: 1 / 2;
+      max-height: 100%;
     }
     #board {
       display: block;
       image-rendering: pixelated;
-      max-width: 100%;
-      max-height: 100%;
+      width: 100%;
+      height: 100%;
     }
     .side {
-      width: 88px;
+      width: 82px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -90,11 +112,11 @@
       background: #1e293b;
       border-radius: 10px;
       border: 1px solid #334155;
-      padding: 8px;
+      padding: 6px;
       text-align: center;
     }
     .panel-title {
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       color: #94a3b8;
       margin-bottom: 4px;
     }
@@ -107,9 +129,9 @@
       background: #334155;
       border: none;
       color: #e2e8f0;
-      padding: 10px 8px;
+      padding: 9px 6px;
       border-radius: 8px;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
       width: 100%;
@@ -119,80 +141,159 @@
     .btn-primary:active { background: #1d4ed8; }
     .btn-danger { background: #dc2626; }
 
-    /* ===== 新按键布局 ===== */
+    /* ===== 圆形按键区 ===== */
     .controls {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 10px 0 2px;
+      position: relative;
       flex-shrink: 0;
-    }
-    .ctrl-row {
-      display: flex;
-      gap: 8px;
+      height: var(--ctrl-area-h, 150px);
+      margin-top: 6px;
     }
     .ctrl-btn {
-      flex: 1;
+      position: absolute;
+      width: var(--btn-size, 56px);
+      height: var(--btn-size, 56px);
+      border-radius: 50%;
       background: #1e293b;
-      border: 2px solid #334155;
-      border-radius: 14px;
+      border: 2px solid #475569;
       color: #e2e8f0;
-      font-size: 1.5rem;
-      height: 56px;
+      font-size: calc(var(--btn-size, 56px) * 0.38);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       user-select: none;
-      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      transition: transform 0.08s, background 0.1s;
     }
     .ctrl-btn:active {
       background: #334155;
-      transform: scale(0.97);
+      transform: scale(0.92);
     }
-    .ctrl-btn.wide {
-      font-size: 0.95rem;
+    .ctrl-btn.small-text {
+      font-size: calc(var(--btn-size, 56px) * 0.22);
       font-weight: 600;
-      letter-spacing: 1px;
+      text-align: center;
+      line-height: 1.15;
+      padding: 4px;
     }
     .ctrl-btn.accent {
       background: #1e3a5f;
-      border-color: #2563eb;
+      border-color: #3b82f6;
       color: #93c5fd;
     }
-    .ctrl-btn.accent:active {
-      background: #1e40af;
+    .ctrl-btn.accent:active { background: #1e40af; }
+
+    /* 编辑模式高亮 */
+    .controls.edit-mode .ctrl-btn {
+      outline: 2px dashed #38bdf8;
+      outline-offset: 2px;
     }
 
     .overlay {
       position: absolute;
       inset: 0;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.88);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 14px;
       z-index: 10;
       border-radius: 10px;
     }
     .overlay.hidden { display: none; }
-    .overlay h2 {
-      font-size: 1.6rem;
-      font-weight: 800;
+    .overlay h2 { font-size: 1.5rem; font-weight: 800; }
+    .overlay p { color: #94a3b8; font-size: 0.9rem; }
+    .overlay .btn { width: auto; padding: 12px 28px; font-size: 1rem; }
+
+    /* ===== 设置面板 ===== */
+    .settings-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
     }
-    .overlay p {
+    .settings-mask.hidden { display: none; }
+    .settings-panel {
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: #1e293b;
+      border-radius: 16px 16px 0 0;
+      padding: 16px 18px 24px;
+      border: 1px solid #334155;
+      border-bottom: none;
+    }
+    .settings-panel h3 {
+      font-size: 1.1rem;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .settings-panel h3 button {
+      background: none;
+      border: none;
       color: #94a3b8;
-      font-size: 0.9rem;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px 8px;
     }
-    .overlay .btn {
-      width: auto;
-      padding: 12px 28px;
-      font-size: 1rem;
+    .setting-item {
+      margin-bottom: 16px;
     }
-    @media (min-width: 400px) {
-      .side { width: 96px; }
-      .ctrl-btn { height: 60px; }
+    .setting-item label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .setting-item label span {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .setting-item input[type="range"] {
+      width: 100%;
+      accent-color: #3b82f6;
+    }
+    .layout-opts {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .layout-opt {
+      flex: 1;
+      min-width: 90px;
+      padding: 10px 8px;
+      border-radius: 10px;
+      border: 2px solid #334155;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 0.8rem;
+      text-align: center;
+      cursor: pointer;
+    }
+    .layout-opt.active {
+      border-color: #3b82f6;
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .settings-actions .btn { flex: 1; padding: 12px; }
+    .hint {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 4px;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -200,24 +301,27 @@
   <div class="app">
     <div class="header">
       <h1>TETRIS</h1>
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-label">分数</div>
-          <div class="stat-value" id="score">0</div>
+      <div class="header-right">
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">分数</div>
+            <div class="stat-value" id="score">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">等级</div>
+            <div class="stat-value" id="level">1</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">消除</div>
+            <div class="stat-value" id="lines">0</div>
+          </div>
         </div>
-        <div class="stat">
-          <div class="stat-label">等级</div>
-          <div class="stat-value" id="level">1</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">消除</div>
-          <div class="stat-value" id="lines">0</div>
-        </div>
+        <button class="icon-btn" id="settingsBtn" title="设置">⚙</button>
       </div>
     </div>
 
     <div class="main">
-      <div class="board-wrap">
+      <div class="board-wrap" id="boardWrap">
         <canvas id="board" width="300" height="600"></canvas>
         <div class="overlay" id="startOverlay">
           <h2>俄罗斯方块</h2>
@@ -235,30 +339,76 @@
         </div>
       </div>
 
-      <div class="side">
+      <div class="side" id="sidePanel">
         <div class="panel">
           <div class="panel-title">下一个</div>
-          <canvas id="next" width="80" height="80"></canvas>
+          <canvas id="next" width="72" height="72"></canvas>
         </div>
         <button class="btn" id="pauseBtn">暂停</button>
         <button class="btn btn-danger" id="resetBtn">重开</button>
       </div>
     </div>
 
-    <!-- 新布局：第一行方向键，第二行旋转 + 硬降 -->
-    <div class="controls">
-      <div class="ctrl-row">
-        <div class="ctrl-btn" id="btnLeft">←</div>
-        <div class="ctrl-btn" id="btnDown">↓</div>
-        <div class="ctrl-btn" id="btnRight">→</div>
+    <!-- 圆形可拖动按键 -->
+    <div class="controls" id="controls">
+      <div class="ctrl-btn" id="btnLeft" data-key="left">←</div>
+      <div class="ctrl-btn" id="btnDown" data-key="down">↓</div>
+      <div class="ctrl-btn" id="btnRight" data-key="right">→</div>
+      <div class="ctrl-btn" id="btnRotate" data-key="rotate">↻</div>
+      <div class="ctrl-btn small-text accent" id="btnDrop" data-key="drop">落<br>下</div>
+    </div>
+  </div>
+
+  <!-- 设置面板 -->
+  <div class="settings-mask hidden" id="settingsMask">
+    <div class="settings-panel">
+      <h3>
+        自定义设置
+        <button id="closeSettings">✕</button>
+      </h3>
+
+      <div class="setting-item">
+        <label>游戏框大小 <span id="boardScaleVal">100%</span></label>
+        <input type="range" id="boardScale" min="60" max="120" value="100" />
+        <p class="hint">调整中间游戏区域的显示大小</p>
       </div>
-      <div class="ctrl-row">
-        <div class="ctrl-btn wide" id="btnRotate">↻ 旋转</div>
-        <div class="ctrl-btn wide accent" id="btnDrop">一键下落</div>
+
+      <div class="setting-item">
+        <label>按键大小 <span id="btnSizeVal">56</span></label>
+        <input type="range" id="btnSize" min="40" max="80" value="56" />
+      </div>
+
+      <div class="setting-item">
+        <label>按键区域高度 <span id="ctrlHVal">150</span></label>
+        <input type="range" id="ctrlHeight" min="120" max="220" value="150" />
+      </div>
+
+      <div class="setting-item">
+        <label>按键布局</label>
+        <div class="layout-opts">
+          <div class="layout-opt active" data-layout="bottom">底部居中</div>
+          <div class="layout-opt" data-layout="split">左右分离</div>
+          <div class="layout-opt" data-layout="arc">弧形</div>
+        </div>
+        <p class="hint">选择预设后仍可长按拖动单个按键微调位置</p>
+      </div>
+
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="editMode" style="width:auto;margin-right:8px;accent-color:#3b82f6;" />
+          开启拖动编辑模式
+        </label>
+        <p class="hint">开启后可直接拖动每个圆形按键到任意位置，关闭后恢复正常点击操作</p>
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn" id="resetLayout">恢复默认</button>
+        <button class="btn btn-primary" id="saveSettings">保存</button>
       </div>
     </div>
   </div>
 
   <script src="game.js"></script>
+  <script src="ui.js"></script>
 </body>
 </html>
