@@ -1,0 +1,11 @@
+{
+  "appId": "com.leitian.tetris",
+  "appName": "俄罗斯方块",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
