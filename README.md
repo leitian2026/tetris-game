@@ -1,8 +1,21 @@
 # 俄罗斯方块 (Tetris)
 
-经典俄罗斯方块游戏，支持键盘和手机触摸操作，可打包成 Android APK。
+经典俄罗斯方块游戏，支持键盘和手机触摸操作，**支持 GitHub Actions 自动构建 APK**。
 
-**在线试玩：** 打开 [https://leitian2026.github.io/tetris-game/](https://leitian2026.github.io/tetris-game/)（开启 GitHub Pages 后可用）
+**仓库地址：** https://github.com/leitian2026/tetris-game
+
+---
+
+## 下载 APK（推荐）
+
+仓库已配置自动构建，按以下步骤下载：
+
+1. 打开仓库的 [**Actions**](https://github.com/leitian2026/tetris-game/actions) 页面
+2. 点击最新的一次 **Build Android APK** 运行记录
+3. 在页面底部 **Artifacts** 区域下载 `tetris-debug-apk`
+4. 解压后得到 `.apk` 文件，传到手机安装即可
+
+> 如果还没有构建记录，点击 Actions 页面右侧的 **Run workflow** 手动触发一次。
 
 ---
 
@@ -15,6 +28,7 @@
 - 等级越高下落越快
 - 经典计分规则
 - 暂停 / 重开
+- 手机触摸手势 + 虚拟按钮
 
 ### 操作方式
 
@@ -30,70 +44,36 @@
 
 ---
 
-## 快速开始（网页版）
+## 网页版试玩
 
-直接用浏览器打开 `index.html` 即可游玩，无需安装任何依赖。
+直接用浏览器打开 `index.html` 即可，无需安装依赖。
+
+也可开启 GitHub Pages：
+1. 仓库 Settings → Pages
+2. Source 选 `main` 分支，文件夹选 `/ (root)`
+3. 访问：`https://leitian2026.github.io/tetris-game/`
 
 ---
 
-## 打包成 Android APK
-
-有 3 种推荐方式：
-
-### 方法一：使用 PWA Builder（最简单，推荐）
-
-1. 先把本仓库部署到任意静态托管（GitHub Pages / Vercel / Cloudflare Pages 等）
-2. 打开 [https://www.pwabuilder.com/](https://www.pwabuilder.com/)
-3. 输入你的网站地址，点击 **Start**
-4. 选择 **Android** → **Generate Package**
-5. 下载生成的 `.apk` 或 `.aab` 文件
-
-### 方法二：使用 Capacitor（本地打包）
+## 本地打包 APK（可选）
 
 ```bash
-# 1. 安装依赖
-npm init -y
-npm install @capacitor/core @capacitor/cli @capacitor/android
+git clone https://github.com/leitian2026/tetris-game.git
+cd tetris-game
+npm install
 
-# 2. 初始化
-npx cap init "Tetris" "com.leitian.tetris" --web-dir .
+# 准备网页资源
+mkdir -p www
+cp index.html game.js manifest.json sw.js www/
 
-# 3. 添加 Android 平台
+# 添加 Android 并构建
 npx cap add android
-
-# 4. 同步文件
 npx cap sync
-
-# 5. 用 Android Studio 打开并打包
-npx cap open android
+cd android && ./gradlew assembleDebug
 ```
 
-在 Android Studio 中：`Build` → `Build Bundle(s) / APK(s)` → `Build APK(s)`
-
-### 方法三：使用 Cordova
-
-```bash
-npm install -g cordova
-cordova create tetris-app com.leitian.tetris Tetris
-cd tetris-app
-# 把本仓库的 index.html、game.js、manifest.json、sw.js 复制到 www 目录
-cordova platform add android
-cordova build android
-```
-
-生成的 APK 位于：`platforms/android/app/build/outputs/apk/`
-
----
-
-## 开启 GitHub Pages（推荐先做）
-
-1. 打开仓库 Settings → Pages
-2. Source 选择 `Deploy from a branch`
-3. Branch 选 `main`，文件夹选 `/ (root)`
-4. 保存后等待 1～2 分钟
-5. 访问：`https://leitian2026.github.io/tetris-game/`
-
-开启后就可以用 PWA Builder 一键生成 APK。
+生成的 APK 路径：
+`android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
@@ -101,10 +81,13 @@ cordova build android
 
 ```
 tetris-game/
-├── index.html      # 主页面 + 样式
-├── game.js         # 游戏核心逻辑
-├── manifest.json   # PWA 配置
-├── sw.js           # Service Worker（离线缓存）
+├── index.html                    # 主页面 + 样式
+├── game.js                       # 游戏核心逻辑
+├── manifest.json                 # PWA 配置
+├── sw.js                         # Service Worker
+├── package.json                  # 依赖（Capacitor）
+├── capacitor.config.json         # Capacitor 配置
+├── .github/workflows/build-apk.yml  # 自动构建 APK
 └── README.md
 ```
 
