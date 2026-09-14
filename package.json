@@ -1,0 +1,22 @@
+{
+  "name": "tetris-game",
+  "version": "1.0.0",
+  "description": "经典俄罗斯方块 - 可打包 Android APK",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'static web app, no build needed'",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android",
+    "cap:build": "npx cap sync && cd android && ./gradlew assembleDebug"
+  },
+  "keywords": ["tetris", "game", "android"],
+  "author": "leitian2026",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}
