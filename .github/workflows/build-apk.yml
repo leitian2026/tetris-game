@@ -31,8 +31,7 @@ jobs:
       - name: Prepare www folder
         run: |
           mkdir -p www
-          cp index.html game.js manifest.json sw.js www/
-          # 简单占位图标（避免缺失）
+          cp index.html game.js ui.js manifest.json sw.js www/
           echo '' > www/icon-192.png
           echo '' > www/icon-512.png
 
