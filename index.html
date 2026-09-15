@@ -49,11 +49,15 @@
       overflow: hidden;
       z-index: 5;
       touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .board-wrap.edit-target { outline: 2px dashed #38bdf8; outline-offset: 2px; }
     #board {
-      display: block; image-rendering: pixelated;
-      width: 100%; height: 100%;
+      display: block;
+      image-rendering: pixelated;
+      /* 宽高由 JS 按正方形格子设置，禁止 CSS 拉伸 */
     }
     .side {
       position: absolute;
@@ -240,7 +244,7 @@
       <div class="settings-actions">
         <button class="btn" id="fitBoardBtn" style="background:#0f766e;">一键铺满可用区域</button>
       </div>
-      <p class="hint">按当前屏幕和两侧按键留白，自动计算最大游戏框并居中</p>
+      <p class="hint">格子始终保持正方形；外框非 1:2 时画布居中不拉伸</p>
 
       <div class="setting-item" style="margin-top:14px;">
         <label>预测落点透明度 <span id="ghostAlphaVal">25%</span></label>
