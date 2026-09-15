@@ -1,7 +1,8 @@
 // 俄罗斯方块核心逻辑
 const COLS = 10;
 const ROWS = 20;
-let BLOCK = 30;
+let CELL_W = 30;
+let CELL_H = 30;
 
 const COLORS = [
   null,
@@ -57,22 +58,19 @@ if (typeof window.TETRIS_GHOST_ALPHA !== 'number') {
   window.TETRIS_GHOST_ALPHA = 0.25;
 }
 
-/**
- * 外框应为 1:2。按宽度算正方形格子，画布内部分辨率 = 格子像素，CSS 100% 铺满外框。
- */
+/** 外框宽高可独立；格子宽高按外框分别计算并铺满 */
 function syncCanvasSize() {
   if (!boardWrap) return;
-  const dw = boardWrap.clientWidth || 200;
-  // 外框高度应约为 2*宽；以宽为准保证正方形
-  const cell = Math.max(8, Math.floor(dw / COLS));
-  BLOCK = cell;
-  const cw = cell * COLS;
-  const ch = cell * ROWS;
+  const dw = Math.max(100, boardWrap.clientWidth || 200);
+  const dh = Math.max(200, boardWrap.clientHeight || 400);
+  CELL_W = Math.max(6, Math.floor(dw / COLS));
+  CELL_H = Math.max(6, Math.floor(dh / ROWS));
+  const cw = CELL_W * COLS;
+  const ch = CELL_H * ROWS;
   if (canvas.width !== cw || canvas.height !== ch) {
     canvas.width = cw;
     canvas.height = ch;
   }
-  // 铺满外框（外框已是 1:2，不会变形）
   canvas.style.width = '100%';
   canvas.style.height = '100%';
   draw();
@@ -222,25 +220,18 @@ function resetPiece() {
   drawNext();
 }
 
-function drawMatrix(matrix, offset, context, blockSize) {
-  if (blockSize == null) blockSize = BLOCK;
+function drawMatrix(matrix, offset, context, cw, ch) {
+  if (cw == null) cw = CELL_W;
+  if (ch == null) ch = CELL_H;
   matrix.forEach((row, y) => {
     row.forEach((val, x) => {
       if (val !== 0) {
+        const px = (x + offset.x) * cw;
+        const py = (y + offset.y) * ch;
         context.fillStyle = COLORS[val];
-        context.fillRect(
-          (x + offset.x) * blockSize,
-          (y + offset.y) * blockSize,
-          blockSize - 1,
-          blockSize - 1
-        );
+        context.fillRect(px, py, cw - 1, ch - 1);
         context.fillStyle = 'rgba(255,255,255,0.25)';
-        context.fillRect(
-          (x + offset.x) * blockSize,
-          (y + offset.y) * blockSize,
-          blockSize - 1,
-          Math.max(2, Math.floor(blockSize * 0.12))
-        );
+        context.fillRect(px, py, cw - 1, Math.max(2, Math.floor(ch * 0.12)));
       }
     });
   });
@@ -254,14 +245,14 @@ function draw() {
   ctx.lineWidth = 0.5;
   for (let x = 0; x <= COLS; x++) {
     ctx.beginPath();
-    ctx.moveTo(x * BLOCK, 0);
-    ctx.lineTo(x * BLOCK, ROWS * BLOCK);
+    ctx.moveTo(x * CELL_W, 0);
+    ctx.lineTo(x * CELL_W, ROWS * CELL_H);
     ctx.stroke();
   }
   for (let y = 0; y <= ROWS; y++) {
     ctx.beginPath();
-    ctx.moveTo(0, y * BLOCK);
-    ctx.lineTo(COLS * BLOCK, y * BLOCK);
+    ctx.moveTo(0, y * CELL_H);
+    ctx.lineTo(COLS * CELL_W, y * CELL_H);
     ctx.stroke();
   }
 
@@ -295,7 +286,7 @@ function drawNext() {
   const bs = 18;
   const ox = (nextCanvas.width / bs - m[0].length) / 2;
   const oy = (nextCanvas.height / bs - m.length) / 2;
-  drawMatrix(m, { x: ox, y: oy }, nextCtx, bs);
+  drawMatrix(m, { x: ox, y: oy }, nextCtx, bs, bs);
 }
 
 function updateStats() {
