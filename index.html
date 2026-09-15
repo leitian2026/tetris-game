@@ -49,15 +49,13 @@
       overflow: hidden;
       z-index: 5;
       touch-action: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
     .board-wrap.edit-target { outline: 2px dashed #38bdf8; outline-offset: 2px; }
     #board {
       display: block;
       image-rendering: pixelated;
-      /* 宽高由 JS 按正方形格子设置，禁止 CSS 拉伸 */
+      width: 100%;
+      height: 100%;
     }
     .side {
       position: absolute;
@@ -232,19 +230,15 @@
     <div class="settings-panel">
       <h3>自定义设置 <button id="closeSettings">✕</button></h3>
 
-      <div class="section-title">游戏框（上限随屏幕自动适配）</div>
+      <div class="section-title">游戏框（固定 1:2，格子为正方形）</div>
       <div class="setting-item">
-        <label>宽度 <span id="boardWVal">200</span>px</label>
-        <input type="range" id="boardW" min="120" max="800" value="200" />
-      </div>
-      <div class="setting-item">
-        <label>高度 <span id="boardHVal">400</span>px</label>
-        <input type="range" id="boardH" min="240" max="1200" value="400" />
+        <label>大小 <span id="boardSizeVal">200×400</span></label>
+        <input type="range" id="boardSize" min="120" max="400" value="200" />
       </div>
       <div class="settings-actions">
         <button class="btn" id="fitBoardBtn" style="background:#0f766e;">一键铺满可用区域</button>
       </div>
-      <p class="hint">格子始终保持正方形；外框非 1:2 时画布居中不拉伸</p>
+      <p class="hint">按当前屏幕自动算最大尺寸；外框=实际游戏区，无黑边假适配</p>
 
       <div class="setting-item" style="margin-top:14px;">
         <label>预测落点透明度 <span id="ghostAlphaVal">25%</span></label>
