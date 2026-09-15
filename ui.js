@@ -1,4 +1,4 @@
-// 全自由布局：游戏框固定 1:2（与 10×20 正方形格子一致）
+// 全自由布局：游戏框宽高 1:2 联动（正方形格子）
 (function () {
   const STORAGE_KEY = 'tetris-ui-v6';
 
@@ -23,22 +23,27 @@
     return { maxW: maxW, maxH: maxH, topPad: topPad, sidePad: sidePad, vw: v.vw, vh: v.vh };
   }
 
-  // 始终 宽:高 = 1:2
   function sizeFromWidth(w) {
     w = Math.max(100, Math.floor(w));
     return { boardW: w, boardH: w * 2 };
   }
 
+  function sizeFromHeight(h) {
+    h = Math.max(200, Math.floor(h));
+    // 对齐偶数高度，保证宽为整数
+    if (h % 2 !== 0) h -= 1;
+    var w = Math.floor(h / 2);
+    return { boardW: w, boardH: w * 2 };
+  }
+
   function fitBoardSize() {
     var area = availableBoardArea();
-    // 在可用区域内取最大 1:2 矩形
     var w = area.maxW;
     var h = w * 2;
     if (h > area.maxH) {
       h = area.maxH;
       w = Math.floor(h / 2);
     }
-    // 对齐到格子整数，避免半像素
     w = Math.max(100, Math.floor(w / 10) * 10);
     h = w * 2;
     return {
@@ -70,7 +75,6 @@
   }
 
   var cfg = load();
-  // 纠正旧配置非 1:2
   if (cfg.boardH !== cfg.boardW * 2) {
     cfg.boardH = cfg.boardW * 2;
   }
@@ -119,10 +123,13 @@
   function updateSliderLimits() {
     var area = availableBoardArea();
     var maxW = Math.min(area.maxW, Math.floor(area.maxH / 2));
-    boardSizeInput.max = Math.max(160, maxW);
-    boardSizeInput.min = 120;
-    if (cfg.boardW > +boardSizeInput.max) {
-      var s = sizeFromWidth(+boardSizeInput.max);
+    maxW = Math.max(160, maxW);
+    boardWInput.max = maxW;
+    boardWInput.min = 120;
+    boardHInput.max = maxW * 2;
+    boardHInput.min = 240;
+    if (cfg.boardW > maxW) {
+      var s = sizeFromWidth(maxW);
       cfg.boardW = s.boardW;
       cfg.boardH = s.boardH;
     }
@@ -173,16 +180,19 @@
     };
   }
 
-  function applyAll() {
-    // 强制 1:2
-    cfg.boardH = cfg.boardW * 2;
-
-    document.documentElement.style.setProperty('--btn-size', cfg.btnSize + 'px');
-
+  function applyBoardBox() {
     boardWrap.style.width = cfg.boardW + 'px';
     boardWrap.style.height = cfg.boardH + 'px';
     boardWrap.style.left = cfg.boardX + 'px';
     boardWrap.style.top = cfg.boardY + 'px';
+    resizeCanvas();
+  }
+
+  function applyAll() {
+    cfg.boardH = cfg.boardW * 2;
+
+    document.documentElement.style.setProperty('--btn-size', cfg.btnSize + 'px');
+    applyBoardBox();
 
     if (cfg.showSide) {
       sidePanel.classList.remove('hidden-side');
@@ -204,7 +214,6 @@
     if (!cfg.btnPos) cfg.btnPos = JSON.parse(JSON.stringify(pos));
 
     applyGhost();
-    resizeCanvas();
   }
 
   function getPoint(e) {
@@ -302,7 +311,8 @@
     if (doSave) save();
   }
 
-  var boardSizeInput = document.getElementById('boardSize');
+  var boardWInput = document.getElementById('boardW');
+  var boardHInput = document.getElementById('boardH');
   var btnSizeInput = document.getElementById('btnSize');
   var sideWidthInput = document.getElementById('sideWidth');
   var showSideCheck = document.getElementById('showSide');
@@ -310,8 +320,10 @@
 
   function syncForm() {
     updateSliderLimits();
-    boardSizeInput.value = cfg.boardW;
-    document.getElementById('boardSizeVal').textContent = cfg.boardW + '×' + cfg.boardH;
+    boardWInput.value = cfg.boardW;
+    document.getElementById('boardWVal').textContent = cfg.boardW;
+    boardHInput.value = cfg.boardH;
+    document.getElementById('boardHVal').textContent = cfg.boardH;
     btnSizeInput.value = cfg.btnSize;
     document.getElementById('btnSizeVal').textContent = cfg.btnSize;
     sideWidthInput.value = cfg.sideW;
@@ -325,7 +337,7 @@
   }
 
   function readForm() {
-    var s = sizeFromWidth(+boardSizeInput.value);
+    var s = sizeFromWidth(+boardWInput.value);
     cfg.boardW = s.boardW;
     cfg.boardH = s.boardH;
     cfg.btnSize = +btnSizeInput.value;
@@ -359,15 +371,30 @@
     if (e.target === mask) mask.classList.add('hidden');
   });
 
-  boardSizeInput.addEventListener('input', function () {
-    var s = sizeFromWidth(+boardSizeInput.value);
+  // 调宽 → 高 = 宽×2
+  boardWInput.addEventListener('input', function () {
+    var s = sizeFromWidth(+boardWInput.value);
     cfg.boardW = s.boardW;
     cfg.boardH = s.boardH;
-    document.getElementById('boardSizeVal').textContent = cfg.boardW + '×' + cfg.boardH;
-    boardWrap.style.width = cfg.boardW + 'px';
-    boardWrap.style.height = cfg.boardH + 'px';
-    resizeCanvas();
+    boardWInput.value = cfg.boardW;
+    boardHInput.value = cfg.boardH;
+    document.getElementById('boardWVal').textContent = cfg.boardW;
+    document.getElementById('boardHVal').textContent = cfg.boardH;
+    applyBoardBox();
   });
+
+  // 调高 → 宽 = 高/2
+  boardHInput.addEventListener('input', function () {
+    var s = sizeFromHeight(+boardHInput.value);
+    cfg.boardW = s.boardW;
+    cfg.boardH = s.boardH;
+    boardWInput.value = cfg.boardW;
+    boardHInput.value = cfg.boardH;
+    document.getElementById('boardWVal').textContent = cfg.boardW;
+    document.getElementById('boardHVal').textContent = cfg.boardH;
+    applyBoardBox();
+  });
+
   btnSizeInput.addEventListener('input', function () {
     cfg.btnSize = +btnSizeInput.value;
     document.getElementById('btnSizeVal').textContent = cfg.btnSize;
