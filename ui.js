@@ -1,20 +1,64 @@
 // 全自由布局：游戏框 / 侧栏 / 按键 均可调大小 + 拖动
 (function () {
-  const STORAGE_KEY = 'tetris-ui-v4';
+  const STORAGE_KEY = 'tetris-ui-v5';
+
+  function viewport() {
+    return {
+      vw: window.innerWidth || 360,
+      vh: window.innerHeight || 640
+    };
+  }
+
+  // 两侧按键模式下，中间可用区域
+  function availableBoardArea() {
+    var v = viewport();
+    var btn = (cfg && cfg.btnSize) || 56;
+    var sidePad = btn + 20; // 左右各留按键宽度+边距
+    var topPad = 48;
+    var bottomPad = btn * 3 + 40; // 底部也可能有按键
+    // sides 布局按键在左右下角，高度上可用更多
+    if (cfg && cfg.layout === 'sides') {
+      bottomPad = 24;
+    }
+    var maxW = Math.max(120, v.vw - sidePad * 2);
+    var maxH = Math.max(240, v.vh - topPad - bottomPad);
+    return { maxW: maxW, maxH: maxH, topPad: topPad, sidePad: sidePad, vw: v.vw, vh: v.vh };
+  }
+
+  function fitBoardSize(keepRatio) {
+    var area = availableBoardArea();
+    var w = area.maxW;
+    var h = area.maxH;
+    if (keepRatio !== false) {
+      // 尽量保持 1:2（宽:高）
+      if (w * 2 <= h) {
+        h = w * 2;
+      } else {
+        w = Math.floor(h / 2);
+      }
+    }
+    w = Math.max(120, Math.floor(w));
+    h = Math.max(240, Math.floor(h));
+    return {
+      boardW: w,
+      boardH: h,
+      boardX: Math.floor((area.vw - w) / 2),
+      boardY: area.topPad + Math.floor((area.maxH - h) / 2)
+    };
+  }
 
   function defaultCfg() {
-    const vw = window.innerWidth || 360;
-    const vh = window.innerHeight || 640;
-    const bw = Math.min(220, Math.floor(vw * 0.55));
-    const bh = Math.min(440, Math.floor(bw * 2));
+    var fit = fitBoardSize(true);
+    var v = viewport();
+    var sideW = 82;
     return {
-      boardW: bw,
-      boardH: bh,
-      boardX: Math.floor((vw - bw) / 2 - 20),
-      boardY: 52,
-      sideW: 82,
-      sideX: Math.min(vw - 94, Math.floor((vw - bw) / 2 - 20) + bw + 10),
-      sideY: 120,
+      boardW: fit.boardW,
+      boardH: fit.boardH,
+      boardX: fit.boardX,
+      boardY: fit.boardY,
+      sideW: sideW,
+      sideX: Math.min(v.vw - sideW - 8, fit.boardX + fit.boardW + 8),
+      sideY: fit.boardY + 40,
       showSide: true,
       btnSize: 56,
       ghostAlpha: 25,
@@ -23,26 +67,28 @@
     };
   }
 
-  let cfg = load();
-  let editMode = false;
-  let dragTarget = null; // { type: 'board'|'side'|'btn', key? }
-  let dragOffset = { x: 0, y: 0 };
+  var cfg = load();
+  var editMode = false;
+  var dragTarget = null;
+  var dragOffset = { x: 0, y: 0 };
 
-  const boardWrap = document.getElementById('boardWrap');
-  const sidePanel = document.getElementById('sidePanel');
-  const controls = document.getElementById('controls');
-  const editBar = document.getElementById('editBar');
-  const mask = document.getElementById('settingsMask');
-  const keys = ['left', 'down', 'right', 'rotate', 'drop'];
-  const btnEls = {};
+  var boardWrap = document.getElementById('boardWrap');
+  var sidePanel = document.getElementById('sidePanel');
+  var controls = document.getElementById('controls');
+  var editBar = document.getElementById('editBar');
+  var mask = document.getElementById('settingsMask');
+  var keys = ['left', 'down', 'right', 'rotate', 'drop'];
+  var btnEls = {};
   keys.forEach(function (k) {
     btnEls[k] = document.querySelector('[data-key="' + k + '"]');
   });
 
   function load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return Object.assign(defaultCfg(), JSON.parse(raw));
+      // 迁移：旧版本清掉过小的固定上限配置，用新默认
+      localStorage.removeItem('tetris-ui-v4');
     } catch (e) {}
     return defaultCfg();
   }
@@ -55,17 +101,33 @@
     window.TETRIS_GHOST_ALPHA = Math.max(0, Math.min(60, cfg.ghostAlpha || 0)) / 100;
   }
 
+  function updateSliderLimits() {
+    var area = availableBoardArea();
+    var v = viewport();
+    boardWInput.max = Math.max(200, v.vw - 8);
+    boardHInput.max = Math.max(300, v.vh - 8);
+    // 当前值不超过上限
+    if (cfg.boardW > +boardWInput.max) {
+      cfg.boardW = +boardWInput.max;
+      boardWInput.value = cfg.boardW;
+    }
+    if (cfg.boardH > +boardHInput.max) {
+      cfg.boardH = +boardHInput.max;
+      boardHInput.value = cfg.boardH;
+    }
+  }
+
   function presetBtnPos(layout) {
-    const w = window.innerWidth || 360;
-    const h = window.innerHeight || 640;
-    const s = cfg.btnSize;
-    const pad = 12;
-    const safeBottom = 20;
+    var w = (window.innerWidth || 360);
+    var h = (window.innerHeight || 640);
+    var s = cfg.btnSize;
+    var pad = 12;
+    var safeBottom = 20;
 
     if (layout === 'sides') {
-      const leftX = pad;
-      const rightX = w - s - pad;
-      const baseY = h - safeBottom - s * 3 - 28;
+      var leftX = pad;
+      var rightX = w - s - pad;
+      var baseY = h - safeBottom - s * 3 - 28;
       return {
         left: { x: leftX, y: baseY },
         down: { x: leftX, y: baseY + s + 10 },
@@ -75,7 +137,7 @@
       };
     }
     if (layout === 'split') {
-      const bottom = h - safeBottom - s;
+      var bottom = h - safeBottom - s;
       return {
         left: { x: pad, y: bottom - s - 10 },
         down: { x: pad + s * 0.85, y: bottom },
@@ -84,13 +146,13 @@
         drop: { x: w - s - pad, y: bottom - s * 0.3 }
       };
     }
-    const gap = 12;
-    const total3 = s * 3 + gap * 2;
-    const start3 = Math.max(pad, (w - total3) / 2);
-    const total2 = s * 2 + gap;
-    const start2 = Math.max(pad, (w - total2) / 2);
-    const y1 = h - safeBottom - s * 2 - 20;
-    const y2 = h - safeBottom - s;
+    var gap = 12;
+    var total3 = s * 3 + gap * 2;
+    var start3 = Math.max(pad, (w - total3) / 2);
+    var total2 = s * 2 + gap;
+    var start2 = Math.max(pad, (w - total2) / 2);
+    var y1 = h - safeBottom - s * 2 - 20;
+    var y2 = h - safeBottom - s;
     return {
       left: { x: start3, y: y1 },
       down: { x: start3 + s + gap, y: y1 },
@@ -119,7 +181,7 @@
       sidePanel.style.display = 'none';
     }
 
-    const pos = cfg.btnPos || presetBtnPos(cfg.layout);
+    var pos = cfg.btnPos || presetBtnPos(cfg.layout);
     keys.forEach(function (k) {
       if (!btnEls[k] || !pos[k]) return;
       btnEls[k].style.left = pos[k].x + 'px';
@@ -140,25 +202,17 @@
     if (!editMode) return;
     var el = e.target.closest('[data-drag]');
     if (!el) return;
-    // 设置面板打开时不拖
     if (!mask.classList.contains('hidden')) return;
-
     e.preventDefault();
     e.stopPropagation();
-
     var type = el.getAttribute('data-drag');
     var rect = el.getBoundingClientRect();
     var p = getPoint(e);
     dragOffset.x = p.x - rect.left;
     dragOffset.y = p.y - rect.top;
-
-    if (type === 'board') {
-      dragTarget = { type: 'board' };
-    } else if (type === 'side') {
-      dragTarget = { type: 'side' };
-    } else if (type === 'btn') {
-      dragTarget = { type: 'btn', key: el.getAttribute('data-key') };
-    }
+    if (type === 'board') dragTarget = { type: 'board' };
+    else if (type === 'side') dragTarget = { type: 'side' };
+    else if (type === 'btn') dragTarget = { type: 'btn', key: el.getAttribute('data-key') };
   }
 
   function onMove(e) {
@@ -195,11 +249,8 @@
     }
   }
 
-  function onUp() {
-    dragTarget = null;
-  }
+  function onUp() { dragTarget = null; }
 
-  // 全局监听，支持拖 board / side / btn
   document.addEventListener('touchstart', onDown, { passive: false });
   document.addEventListener('mousedown', onDown);
   window.addEventListener('touchmove', onMove, { passive: false });
@@ -207,7 +258,6 @@
   window.addEventListener('touchend', onUp);
   window.addEventListener('mouseup', onUp);
 
-  // 编辑时屏蔽按键游戏操作
   keys.forEach(function (k) {
     if (!btnEls[k]) return;
     btnEls[k].addEventListener('click', function (e) {
@@ -237,7 +287,6 @@
     if (doSave) save();
   }
 
-  // ---- 表单 ----
   var boardWInput = document.getElementById('boardW');
   var boardHInput = document.getElementById('boardH');
   var btnSizeInput = document.getElementById('btnSize');
@@ -246,6 +295,7 @@
   var ghostAlphaInput = document.getElementById('ghostAlpha');
 
   function syncForm() {
+    updateSliderLimits();
     boardWInput.value = cfg.boardW;
     document.getElementById('boardWVal').textContent = cfg.boardW;
     boardHInput.value = cfg.boardH;
@@ -269,6 +319,20 @@
     cfg.sideW = +sideWidthInput.value;
     cfg.showSide = showSideCheck.checked;
     cfg.ghostAlpha = +ghostAlphaInput.value;
+  }
+
+  function doFitBoard() {
+    var fit = fitBoardSize(true);
+    cfg.boardW = fit.boardW;
+    cfg.boardH = fit.boardH;
+    cfg.boardX = fit.boardX;
+    cfg.boardY = fit.boardY;
+    // 侧栏跟到游戏框右侧
+    var v = viewport();
+    cfg.sideX = Math.min(v.vw - cfg.sideW - 8, cfg.boardX + cfg.boardW + 8);
+    cfg.sideY = cfg.boardY + 40;
+    applyAll();
+    syncForm();
   }
 
   document.getElementById('settingsBtn').addEventListener('click', function () {
@@ -313,6 +377,11 @@
     applyGhost();
   });
 
+  document.getElementById('fitBoardBtn').addEventListener('click', function () {
+    readForm();
+    doFitBoard();
+  });
+
   document.querySelectorAll('.layout-opt').forEach(function (el) {
     el.addEventListener('click', function () {
       cfg.layout = el.dataset.layout;
@@ -334,6 +403,7 @@
   });
   document.getElementById('resetLayout').addEventListener('click', function () {
     cfg = defaultCfg();
+    cfg.btnPos = null;
     applyAll();
     syncForm();
     save();
@@ -345,11 +415,19 @@
     mask.classList.add('hidden');
   });
 
-  applyAll();
-  setTimeout(applyAll, 200);
-  setTimeout(applyAll, 600);
+  // 首次无旧配置时自动铺满一次
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    doFitBoard();
+  } else {
+    applyAll();
+  }
+  setTimeout(function () {
+    updateSliderLimits();
+    applyAll();
+  }, 200);
+
   window.addEventListener('resize', function () {
-    // 仅限制不越界
+    updateSliderLimits();
     var vw = window.innerWidth || 360;
     var vh = window.innerHeight || 640;
     cfg.boardX = Math.min(cfg.boardX, Math.max(0, vw - cfg.boardW));
