@@ -230,19 +230,19 @@
     <div class="settings-panel">
       <h3>自定义设置 <button id="closeSettings">✕</button></h3>
 
-      <div class="section-title">游戏框（宽高 1:2 联动，格子为正方形）</div>
+      <div class="section-title">游戏框（宽高可分别独立调节）</div>
       <div class="setting-item">
         <label>宽度 <span id="boardWVal">200</span>px</label>
-        <input type="range" id="boardW" min="120" max="400" value="200" />
+        <input type="range" id="boardW" min="100" max="500" value="200" />
       </div>
       <div class="setting-item">
         <label>高度 <span id="boardHVal">400</span>px</label>
-        <input type="range" id="boardH" min="240" max="800" value="400" />
+        <input type="range" id="boardH" min="200" max="900" value="400" />
       </div>
       <div class="settings-actions">
         <button class="btn" id="fitBoardBtn" style="background:#0f766e;">一键铺满可用区域</button>
       </div>
-      <p class="hint">调宽或调高会互相联动（保持 1:2），保证方块旋转不变形、外框无黑边</p>
+      <p class="hint">宽、高完全独立；画布铺满外框。接近 1:2 时格子更接近正方形</p>
 
       <div class="setting-item" style="margin-top:14px;">
         <label>预测落点透明度 <span id="ghostAlphaVal">25%</span></label>
