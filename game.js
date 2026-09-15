@@ -1,17 +1,17 @@
 // 俄罗斯方块核心逻辑
 const COLS = 10;
 const ROWS = 20;
-let BLOCK = 30; // 动态正方形边长
+let BLOCK = 30;
 
 const COLORS = [
   null,
-  '#00f0f0', // I
-  '#0000f0', // J
-  '#f0a000', // L
-  '#f0f000', // O
-  '#00f000', // S
-  '#a000f0', // T
-  '#f00000', // Z
+  '#00f0f0',
+  '#0000f0',
+  '#f0a000',
+  '#f0f000',
+  '#00f000',
+  '#a000f0',
+  '#f00000',
 ];
 
 const SHAPES = [
@@ -58,14 +58,13 @@ if (typeof window.TETRIS_GHOST_ALPHA !== 'number') {
 }
 
 /**
- * 根据外框尺寸计算正方形格子，避免非等比拉伸导致旋转后形状大小不一致
+ * 外框应为 1:2。按宽度算正方形格子，画布内部分辨率 = 格子像素，CSS 100% 铺满外框。
  */
 function syncCanvasSize() {
   if (!boardWrap) return;
   const dw = boardWrap.clientWidth || 200;
-  const dh = boardWrap.clientHeight || 400;
-  // 取能完整放进外框的最大正方形格子
-  const cell = Math.max(8, Math.floor(Math.min(dw / COLS, dh / ROWS)));
+  // 外框高度应约为 2*宽；以宽为准保证正方形
+  const cell = Math.max(8, Math.floor(dw / COLS));
   BLOCK = cell;
   const cw = cell * COLS;
   const ch = cell * ROWS;
@@ -73,9 +72,9 @@ function syncCanvasSize() {
     canvas.width = cw;
     canvas.height = ch;
   }
-  // CSS 也设成同样像素，保证不拉伸
-  canvas.style.width = cw + 'px';
-  canvas.style.height = ch + 'px';
+  // 铺满外框（外框已是 1:2，不会变形）
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
   draw();
   drawNext();
 }
@@ -421,7 +420,6 @@ canvas.addEventListener('touchend', e => {
   }
 }, { passive: false });
 
-// 初始同步画布为正方形格子
 syncCanvasSize();
 setTimeout(syncCanvasSize, 100);
 setTimeout(syncCanvasSize, 400);
