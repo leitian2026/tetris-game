@@ -1,6 +1,6 @@
-// 全自由布局：游戏框宽高 1:2 联动（正方形格子）
+// 全自由布局：游戏框宽高完全独立
 (function () {
-  const STORAGE_KEY = 'tetris-ui-v6';
+  const STORAGE_KEY = 'tetris-ui-v7';
 
   function viewport() {
     return {
@@ -23,29 +23,17 @@
     return { maxW: maxW, maxH: maxH, topPad: topPad, sidePad: sidePad, vw: v.vw, vh: v.vh };
   }
 
-  function sizeFromWidth(w) {
-    w = Math.max(100, Math.floor(w));
-    return { boardW: w, boardH: w * 2 };
-  }
-
-  function sizeFromHeight(h) {
-    h = Math.max(200, Math.floor(h));
-    // 对齐偶数高度，保证宽为整数
-    if (h % 2 !== 0) h -= 1;
-    var w = Math.floor(h / 2);
-    return { boardW: w, boardH: w * 2 };
-  }
-
   function fitBoardSize() {
     var area = availableBoardArea();
+    // 尽量接近 1:2，但不强制
     var w = area.maxW;
-    var h = w * 2;
-    if (h > area.maxH) {
+    var h = Math.min(area.maxH, w * 2);
+    if (h < area.maxH * 0.85) {
       h = area.maxH;
-      w = Math.floor(h / 2);
+      w = Math.min(area.maxW, Math.floor(h / 2));
     }
-    w = Math.max(100, Math.floor(w / 10) * 10);
-    h = w * 2;
+    w = Math.max(120, Math.floor(w));
+    h = Math.max(240, Math.floor(h));
     return {
       boardW: w,
       boardH: h,
@@ -75,10 +63,6 @@
   }
 
   var cfg = load();
-  if (cfg.boardH !== cfg.boardW * 2) {
-    cfg.boardH = cfg.boardW * 2;
-  }
-
   var editMode = false;
   var dragTarget = null;
   var dragOffset = { x: 0, y: 0 };
@@ -98,8 +82,8 @@
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return Object.assign(defaultCfg(), JSON.parse(raw));
+      localStorage.removeItem('tetris-ui-v6');
       localStorage.removeItem('tetris-ui-v5');
-      localStorage.removeItem('tetris-ui-v4');
     } catch (e) {}
     return defaultCfg();
   }
@@ -121,18 +105,13 @@
   }
 
   function updateSliderLimits() {
-    var area = availableBoardArea();
-    var maxW = Math.min(area.maxW, Math.floor(area.maxH / 2));
-    maxW = Math.max(160, maxW);
-    boardWInput.max = maxW;
-    boardWInput.min = 120;
-    boardHInput.max = maxW * 2;
-    boardHInput.min = 240;
-    if (cfg.boardW > maxW) {
-      var s = sizeFromWidth(maxW);
-      cfg.boardW = s.boardW;
-      cfg.boardH = s.boardH;
-    }
+    var v = viewport();
+    boardWInput.max = Math.max(200, v.vw - 8);
+    boardHInput.max = Math.max(300, v.vh - 8);
+    boardWInput.min = 100;
+    boardHInput.min = 200;
+    if (cfg.boardW > +boardWInput.max) cfg.boardW = +boardWInput.max;
+    if (cfg.boardH > +boardHInput.max) cfg.boardH = +boardHInput.max;
   }
 
   function presetBtnPos(layout) {
@@ -189,8 +168,6 @@
   }
 
   function applyAll() {
-    cfg.boardH = cfg.boardW * 2;
-
     document.documentElement.style.setProperty('--btn-size', cfg.btnSize + 'px');
     applyBoardBox();
 
@@ -337,9 +314,8 @@
   }
 
   function readForm() {
-    var s = sizeFromWidth(+boardWInput.value);
-    cfg.boardW = s.boardW;
-    cfg.boardH = s.boardH;
+    cfg.boardW = +boardWInput.value;
+    cfg.boardH = +boardHInput.value;
     cfg.btnSize = +btnSizeInput.value;
     cfg.sideW = +sideWidthInput.value;
     cfg.showSide = showSideCheck.checked;
@@ -371,26 +347,14 @@
     if (e.target === mask) mask.classList.add('hidden');
   });
 
-  // 调宽 → 高 = 宽×2
+  // 宽、高完全独立
   boardWInput.addEventListener('input', function () {
-    var s = sizeFromWidth(+boardWInput.value);
-    cfg.boardW = s.boardW;
-    cfg.boardH = s.boardH;
-    boardWInput.value = cfg.boardW;
-    boardHInput.value = cfg.boardH;
+    cfg.boardW = +boardWInput.value;
     document.getElementById('boardWVal').textContent = cfg.boardW;
-    document.getElementById('boardHVal').textContent = cfg.boardH;
     applyBoardBox();
   });
-
-  // 调高 → 宽 = 高/2
   boardHInput.addEventListener('input', function () {
-    var s = sizeFromHeight(+boardHInput.value);
-    cfg.boardW = s.boardW;
-    cfg.boardH = s.boardH;
-    boardWInput.value = cfg.boardW;
-    boardHInput.value = cfg.boardH;
-    document.getElementById('boardWVal').textContent = cfg.boardW;
+    cfg.boardH = +boardHInput.value;
     document.getElementById('boardHVal').textContent = cfg.boardH;
     applyBoardBox();
   });
