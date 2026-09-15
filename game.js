@@ -54,6 +54,11 @@ let running = false;
 let paused = false;
 let gameOver = false;
 
+// 默认幽灵透明度，可被 ui.js 覆盖
+if (typeof window.TETRIS_GHOST_ALPHA !== 'number') {
+  window.TETRIS_GHOST_ALPHA = 0.25;
+}
+
 function createMatrix(w, h) {
   const m = [];
   while (h--) m.push(new Array(w).fill(0));
@@ -100,13 +105,11 @@ function merge(board, piece) {
 }
 
 function rotate(matrix, dir) {
-  // 转置
   for (let y = 0; y < matrix.length; y++) {
     for (let x = 0; x < y; x++) {
       [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
     }
   }
-  // 反转
   if (dir > 0) {
     matrix.forEach(row => row.reverse());
   } else {
@@ -174,7 +177,6 @@ function sweep() {
     rowCount++;
   }
   if (rowCount > 0) {
-    // 经典计分：1行100，2行300，3行500，4行800，再乘等级
     const points = [0, 100, 300, 500, 800];
     score += (points[rowCount] || 800) * level;
     lines += rowCount;
@@ -210,7 +212,6 @@ function drawMatrix(matrix, offset, context, blockSize = BLOCK) {
           blockSize - 1,
           blockSize - 1
         );
-        // 高光
         context.fillStyle = 'rgba(255,255,255,0.25)';
         context.fillRect(
           (x + offset.x) * blockSize,
@@ -227,7 +228,6 @@ function draw() {
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 网格
   ctx.strokeStyle = 'rgba(51, 65, 85, 0.5)';
   ctx.lineWidth = 0.5;
   for (let x = 0; x <= COLS; x++) {
@@ -245,7 +245,6 @@ function draw() {
 
   drawMatrix(board, { x: 0, y: 0 }, ctx);
   if (piece) {
-    // 阴影
     const ghost = {
       matrix: piece.matrix,
       pos: { x: piece.pos.x, y: piece.pos.y }
@@ -254,9 +253,14 @@ function draw() {
       ghost.pos.y++;
     }
     ghost.pos.y--;
-    ctx.globalAlpha = 0.25;
-    drawMatrix(ghost.matrix, ghost.pos, ctx);
-    ctx.globalAlpha = 1;
+    const alpha = (typeof window.TETRIS_GHOST_ALPHA === 'number')
+      ? window.TETRIS_GHOST_ALPHA
+      : 0.25;
+    if (alpha > 0.01) {
+      ctx.globalAlpha = alpha;
+      drawMatrix(ghost.matrix, ghost.pos, ctx);
+      ctx.globalAlpha = 1;
+    }
 
     drawMatrix(piece.matrix, piece.pos, ctx);
   }
@@ -325,7 +329,6 @@ function togglePause() {
   }
 }
 
-// 按钮事件
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('restartBtn').addEventListener('click', startGame);
 document.getElementById('resumeBtn').addEventListener('click', togglePause);
@@ -338,7 +341,6 @@ document.getElementById('btnDown').addEventListener('click', playerDrop);
 document.getElementById('btnRotate').addEventListener('click', () => playerRotate(1));
 document.getElementById('btnDrop').addEventListener('click', hardDrop);
 
-// 键盘
 document.addEventListener('keydown', e => {
   if (gameOver && e.key !== 'r' && e.key !== 'R') return;
   switch (e.key) {
@@ -353,7 +355,7 @@ document.addEventListener('keydown', e => {
       playerDrop(); break;
     case 'ArrowUp':
     case 'w': case 'W':
-    case ' ': // 空格旋转
+    case ' ':
       e.preventDefault();
       playerRotate(1); break;
     case 'Enter':
@@ -365,7 +367,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// 触摸滑动支持
 let touchStartX = 0;
 let touchStartY = 0;
 let touchStartTime = 0;
@@ -388,22 +389,19 @@ canvas.addEventListener('touchend', e => {
   const absY = Math.abs(dy);
 
   if (dt < 200 && absX < 15 && absY < 15) {
-    // 短按 = 旋转
     playerRotate(1);
   } else if (absX > absY) {
     if (dx > 30) playerMove(1);
     else if (dx < -30) playerMove(-1);
   } else {
     if (dy > 40) playerDrop();
-    else if (dy < -40) hardDrop(); // 上滑硬降
+    else if (dy < -40) hardDrop();
   }
 }, { passive: false });
 
-// 初始绘制
 draw();
 drawNext();
 
-// 注册 Service Worker (PWA)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
