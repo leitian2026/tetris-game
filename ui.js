@@ -9,14 +9,12 @@
     };
   }
 
-  // 两侧按键模式下，中间可用区域
   function availableBoardArea() {
     var v = viewport();
     var btn = (cfg && cfg.btnSize) || 56;
-    var sidePad = btn + 20; // 左右各留按键宽度+边距
+    var sidePad = btn + 20;
     var topPad = 48;
-    var bottomPad = btn * 3 + 40; // 底部也可能有按键
-    // sides 布局按键在左右下角，高度上可用更多
+    var bottomPad = btn * 3 + 40;
     if (cfg && cfg.layout === 'sides') {
       bottomPad = 24;
     }
@@ -30,7 +28,6 @@
     var w = area.maxW;
     var h = area.maxH;
     if (keepRatio !== false) {
-      // 尽量保持 1:2（宽:高）
       if (w * 2 <= h) {
         h = w * 2;
       } else {
@@ -87,7 +84,6 @@
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return Object.assign(defaultCfg(), JSON.parse(raw));
-      // 迁移：旧版本清掉过小的固定上限配置，用新默认
       localStorage.removeItem('tetris-ui-v4');
     } catch (e) {}
     return defaultCfg();
@@ -101,12 +97,19 @@
     window.TETRIS_GHOST_ALPHA = Math.max(0, Math.min(60, cfg.ghostAlpha || 0)) / 100;
   }
 
+  function resizeCanvas() {
+    if (typeof window.TETRIS_RESIZE_CANVAS === 'function') {
+      // 等一帧，确保外框尺寸已生效
+      requestAnimationFrame(function () {
+        window.TETRIS_RESIZE_CANVAS();
+      });
+    }
+  }
+
   function updateSliderLimits() {
-    var area = availableBoardArea();
     var v = viewport();
     boardWInput.max = Math.max(200, v.vw - 8);
     boardHInput.max = Math.max(300, v.vh - 8);
-    // 当前值不超过上限
     if (cfg.boardW > +boardWInput.max) {
       cfg.boardW = +boardWInput.max;
       boardWInput.value = cfg.boardW;
@@ -190,6 +193,7 @@
     if (!cfg.btnPos) cfg.btnPos = JSON.parse(JSON.stringify(pos));
 
     applyGhost();
+    resizeCanvas();
   }
 
   function getPoint(e) {
@@ -327,7 +331,6 @@
     cfg.boardH = fit.boardH;
     cfg.boardX = fit.boardX;
     cfg.boardY = fit.boardY;
-    // 侧栏跟到游戏框右侧
     var v = viewport();
     cfg.sideX = Math.min(v.vw - cfg.sideW - 8, cfg.boardX + cfg.boardW + 8);
     cfg.sideY = cfg.boardY + 40;
@@ -351,11 +354,13 @@
     cfg.boardW = +boardWInput.value;
     document.getElementById('boardWVal').textContent = cfg.boardW;
     boardWrap.style.width = cfg.boardW + 'px';
+    resizeCanvas();
   });
   boardHInput.addEventListener('input', function () {
     cfg.boardH = +boardHInput.value;
     document.getElementById('boardHVal').textContent = cfg.boardH;
     boardWrap.style.height = cfg.boardH + 'px';
+    resizeCanvas();
   });
   btnSizeInput.addEventListener('input', function () {
     cfg.btnSize = +btnSizeInput.value;
@@ -415,7 +420,6 @@
     mask.classList.add('hidden');
   });
 
-  // 首次无旧配置时自动铺满一次
   if (!localStorage.getItem(STORAGE_KEY)) {
     doFitBoard();
   } else {
