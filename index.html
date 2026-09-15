@@ -54,8 +54,6 @@
     #board {
       display: block;
       image-rendering: pixelated;
-      width: 100%;
-      height: 100%;
     }
     .side {
       position: absolute;
@@ -230,7 +228,7 @@
     <div class="settings-panel">
       <h3>自定义设置 <button id="closeSettings">✕</button></h3>
 
-      <div class="section-title">游戏框（宽高可分别独立调节）</div>
+      <div class="section-title">游戏框大小</div>
       <div class="setting-item">
         <label>宽度 <span id="boardWVal">200</span>px</label>
         <input type="range" id="boardW" min="100" max="500" value="200" />
@@ -242,7 +240,7 @@
       <div class="settings-actions">
         <button class="btn" id="fitBoardBtn" style="background:#0f766e;">一键铺满可用区域</button>
       </div>
-      <p class="hint">宽、高完全独立；画布铺满外框。接近 1:2 时格子更接近正方形</p>
+      <p class="hint">宽、高可分别调。实际会取能放进该范围的最大正方形格子，外框贴合，不留黑边、旋转不变形。</p>
 
       <div class="setting-item" style="margin-top:14px;">
         <label>预测落点透明度 <span id="ghostAlphaVal">25%</span></label>
