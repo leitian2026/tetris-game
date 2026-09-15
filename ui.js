@@ -1,29 +1,38 @@
-// UI：全屏浮动按键 / 游戏框缩放 / 幽灵透明度
+// 全自由布局：游戏框 / 侧栏 / 按键 均可调大小 + 拖动
 (function () {
-  const STORAGE_KEY = 'tetris-ui-v3';
+  const STORAGE_KEY = 'tetris-ui-v4';
 
-  const defaults = {
-    boardScale: 100,
-    btnSize: 56,
-    sideWidth: 82,
-    showSide: true,
-    ghostAlpha: 25, // 0-60 百分比
-    layout: 'sides',
-    positions: null // { left:{x,y}, ... } 相对视口像素
-  };
+  function defaultCfg() {
+    const vw = window.innerWidth || 360;
+    const vh = window.innerHeight || 640;
+    const bw = Math.min(220, Math.floor(vw * 0.55));
+    const bh = Math.min(440, Math.floor(bw * 2));
+    return {
+      boardW: bw,
+      boardH: bh,
+      boardX: Math.floor((vw - bw) / 2 - 20),
+      boardY: 52,
+      sideW: 82,
+      sideX: Math.min(vw - 94, Math.floor((vw - bw) / 2 - 20) + bw + 10),
+      sideY: 120,
+      showSide: true,
+      btnSize: 56,
+      ghostAlpha: 25,
+      layout: 'sides',
+      btnPos: null
+    };
+  }
 
   let cfg = load();
   let editMode = false;
-  let dragKey = null;
+  let dragTarget = null; // { type: 'board'|'side'|'btn', key? }
   let dragOffset = { x: 0, y: 0 };
 
-  const controls = document.getElementById('controls');
   const boardWrap = document.getElementById('boardWrap');
-  const boardOuter = document.getElementById('boardOuter');
   const sidePanel = document.getElementById('sidePanel');
+  const controls = document.getElementById('controls');
   const editBar = document.getElementById('editBar');
   const mask = document.getElementById('settingsMask');
-
   const keys = ['left', 'down', 'right', 'rotate', 'drop'];
   const btnEls = {};
   keys.forEach(function (k) {
@@ -33,92 +42,48 @@
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return Object.assign({}, defaults, JSON.parse(raw));
-      // 兼容旧版
-      const old = localStorage.getItem('tetris-ui-v2');
-      if (old) {
-        const o = JSON.parse(old);
-        return Object.assign({}, defaults, o, { layout: o.layout === 'split' ? 'sides' : (o.layout || 'sides') });
-      }
+      if (raw) return Object.assign(defaultCfg(), JSON.parse(raw));
     } catch (e) {}
-    return Object.assign({}, defaults);
+    return defaultCfg();
   }
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   }
 
-  function applyGhostAlpha() {
-    const a = Math.max(0, Math.min(60, cfg.ghostAlpha || 0)) / 100;
-    window.TETRIS_GHOST_ALPHA = a;
+  function applyGhost() {
+    window.TETRIS_GHOST_ALPHA = Math.max(0, Math.min(60, cfg.ghostAlpha || 0)) / 100;
   }
 
-  function resizeBoard() {
-    if (!boardOuter || !boardWrap) return;
-    const aw = boardOuter.clientWidth;
-    const ah = boardOuter.clientHeight;
-    if (aw < 10 || ah < 10) return;
-
-    const scale = (cfg.boardScale || 100) / 100;
-    let w = aw * scale;
-    let h = w * 2;
-    if (h > ah * scale) {
-      h = ah * scale;
-      w = h / 2;
-    }
-    w = Math.max(120, Math.floor(w));
-    h = Math.max(240, Math.floor(h));
-    boardWrap.style.width = w + 'px';
-    boardWrap.style.height = h + 'px';
-  }
-
-  function applyStyles() {
-    document.documentElement.style.setProperty('--btn-size', cfg.btnSize + 'px');
-    document.documentElement.style.setProperty('--side-w', cfg.sideWidth + 'px');
-
-    if (cfg.showSide) {
-      sidePanel.classList.remove('hidden-side');
-      sidePanel.style.display = '';
-    } else {
-      sidePanel.classList.add('hidden-side');
-      sidePanel.style.display = 'none';
-    }
-    applyGhostAlpha();
-    resizeBoard();
-  }
-
-  // 基于整个视口的预设（可用两侧空白）
-  function presetPositions(layout) {
+  function presetBtnPos(layout) {
     const w = window.innerWidth || 360;
     const h = window.innerHeight || 640;
     const s = cfg.btnSize;
     const pad = 12;
-    const safeBottom = 16;
+    const safeBottom = 20;
 
     if (layout === 'sides') {
-      // 左：方向键竖排偏下；右：下落+旋转
       const leftX = pad;
       const rightX = w - s - pad;
-      const baseY = h - safeBottom - s * 3 - 24;
+      const baseY = h - safeBottom - s * 3 - 28;
       return {
-        left:   { x: leftX, y: baseY },
-        down:   { x: leftX, y: baseY + s + 10 },
-        right:  { x: leftX, y: baseY + (s + 10) * 2 },
+        left: { x: leftX, y: baseY },
+        down: { x: leftX, y: baseY + s + 10 },
+        right: { x: leftX, y: baseY + (s + 10) * 2 },
         rotate: { x: rightX, y: baseY + s + 10 },
-        drop:   { x: rightX, y: baseY + (s + 10) * 2 }
+        drop: { x: rightX, y: baseY + (s + 10) * 2 }
       };
     }
     if (layout === 'split') {
       const bottom = h - safeBottom - s;
       return {
-        left:   { x: pad, y: bottom - s - 10 },
-        down:   { x: pad + s * 0.85, y: bottom },
-        right:  { x: pad + s * 1.7, y: bottom - s - 10 },
+        left: { x: pad, y: bottom - s - 10 },
+        down: { x: pad + s * 0.85, y: bottom },
+        right: { x: pad + s * 1.7, y: bottom - s - 10 },
         rotate: { x: w - s * 2.15 - pad, y: bottom - s * 0.3 },
-        drop:   { x: w - s - pad, y: bottom - s * 0.3 }
+        drop: { x: w - s - pad, y: bottom - s * 0.3 }
       };
     }
-    // bottom 居中
     const gap = 12;
     const total3 = s * 3 + gap * 2;
     const start3 = Math.max(pad, (w - total3) / 2);
@@ -127,32 +92,42 @@
     const y1 = h - safeBottom - s * 2 - 20;
     const y2 = h - safeBottom - s;
     return {
-      left:   { x: start3, y: y1 },
-      down:   { x: start3 + s + gap, y: y1 },
-      right:  { x: start3 + (s + gap) * 2, y: y1 },
+      left: { x: start3, y: y1 },
+      down: { x: start3 + s + gap, y: y1 },
+      right: { x: start3 + (s + gap) * 2, y: y1 },
       rotate: { x: start2, y: y2 },
-      drop:   { x: start2 + s + gap, y: y2 }
+      drop: { x: start2 + s + gap, y: y2 }
     };
   }
 
-  function placeButtons() {
-    const pos = cfg.positions || presetPositions(cfg.layout);
-    keys.forEach(function (k) {
-      const el = btnEls[k];
-      if (!el || !pos[k]) return;
-      el.style.left = pos[k].x + 'px';
-      el.style.top = pos[k].y + 'px';
-    });
-    if (!cfg.positions) cfg.positions = JSON.parse(JSON.stringify(pos));
-  }
+  function applyAll() {
+    document.documentElement.style.setProperty('--btn-size', cfg.btnSize + 'px');
 
-  function applyLayout(name, resetPos) {
-    cfg.layout = name;
-    if (resetPos) cfg.positions = null;
-    placeButtons();
-    document.querySelectorAll('.layout-opt').forEach(function (el) {
-      el.classList.toggle('active', el.dataset.layout === name);
+    boardWrap.style.width = cfg.boardW + 'px';
+    boardWrap.style.height = cfg.boardH + 'px';
+    boardWrap.style.left = cfg.boardX + 'px';
+    boardWrap.style.top = cfg.boardY + 'px';
+
+    if (cfg.showSide) {
+      sidePanel.classList.remove('hidden-side');
+      sidePanel.style.display = 'flex';
+      sidePanel.style.width = cfg.sideW + 'px';
+      sidePanel.style.left = cfg.sideX + 'px';
+      sidePanel.style.top = cfg.sideY + 'px';
+    } else {
+      sidePanel.classList.add('hidden-side');
+      sidePanel.style.display = 'none';
+    }
+
+    const pos = cfg.btnPos || presetBtnPos(cfg.layout);
+    keys.forEach(function (k) {
+      if (!btnEls[k] || !pos[k]) return;
+      btnEls[k].style.left = pos[k].x + 'px';
+      btnEls[k].style.top = pos[k].y + 'px';
     });
+    if (!cfg.btnPos) cfg.btnPos = JSON.parse(JSON.stringify(pos));
+
+    applyGhost();
   }
 
   function getPoint(e) {
@@ -163,47 +138,79 @@
 
   function onDown(e) {
     if (!editMode) return;
-    const el = e.target.closest('.ctrl-btn');
+    var el = e.target.closest('[data-drag]');
     if (!el) return;
+    // 设置面板打开时不拖
+    if (!mask.classList.contains('hidden')) return;
+
     e.preventDefault();
     e.stopPropagation();
-    dragKey = el.dataset.key;
-    const rect = el.getBoundingClientRect();
-    const p = getPoint(e);
+
+    var type = el.getAttribute('data-drag');
+    var rect = el.getBoundingClientRect();
+    var p = getPoint(e);
     dragOffset.x = p.x - rect.left;
     dragOffset.y = p.y - rect.top;
+
+    if (type === 'board') {
+      dragTarget = { type: 'board' };
+    } else if (type === 'side') {
+      dragTarget = { type: 'side' };
+    } else if (type === 'btn') {
+      dragTarget = { type: 'btn', key: el.getAttribute('data-key') };
+    }
   }
 
   function onMove(e) {
-    if (!editMode || !dragKey) return;
+    if (!editMode || !dragTarget) return;
     e.preventDefault();
-    const p = getPoint(e);
-    const s = cfg.btnSize;
-    const maxX = (window.innerWidth || 360) - s;
-    const maxY = (window.innerHeight || 640) - s;
-    let x = p.x - dragOffset.x;
-    let y = p.y - dragOffset.y;
-    x = Math.max(0, Math.min(x, maxX));
-    y = Math.max(0, Math.min(y, maxY));
-    if (!cfg.positions) cfg.positions = {};
-    cfg.positions[dragKey] = { x: x, y: y };
-    btnEls[dragKey].style.left = x + 'px';
-    btnEls[dragKey].style.top = y + 'px';
+    var p = getPoint(e);
+    var vw = window.innerWidth || 360;
+    var vh = window.innerHeight || 640;
+
+    if (dragTarget.type === 'board') {
+      var x = Math.max(0, Math.min(p.x - dragOffset.x, vw - cfg.boardW));
+      var y = Math.max(0, Math.min(p.y - dragOffset.y, vh - cfg.boardH));
+      cfg.boardX = Math.floor(x);
+      cfg.boardY = Math.floor(y);
+      boardWrap.style.left = cfg.boardX + 'px';
+      boardWrap.style.top = cfg.boardY + 'px';
+    } else if (dragTarget.type === 'side') {
+      var sw = cfg.sideW;
+      var sh = sidePanel.offsetHeight || 160;
+      var sx = Math.max(0, Math.min(p.x - dragOffset.x, vw - sw));
+      var sy = Math.max(0, Math.min(p.y - dragOffset.y, vh - sh));
+      cfg.sideX = Math.floor(sx);
+      cfg.sideY = Math.floor(sy);
+      sidePanel.style.left = cfg.sideX + 'px';
+      sidePanel.style.top = cfg.sideY + 'px';
+    } else if (dragTarget.type === 'btn' && dragTarget.key) {
+      var s = cfg.btnSize;
+      var bx = Math.max(0, Math.min(p.x - dragOffset.x, vw - s));
+      var by = Math.max(0, Math.min(p.y - dragOffset.y, vh - s));
+      if (!cfg.btnPos) cfg.btnPos = {};
+      cfg.btnPos[dragTarget.key] = { x: Math.floor(bx), y: Math.floor(by) };
+      btnEls[dragTarget.key].style.left = cfg.btnPos[dragTarget.key].x + 'px';
+      btnEls[dragTarget.key].style.top = cfg.btnPos[dragTarget.key].y + 'px';
+    }
   }
 
-  function onUp() { dragKey = null; }
+  function onUp() {
+    dragTarget = null;
+  }
 
-  controls.addEventListener('touchstart', onDown, { passive: false });
-  controls.addEventListener('mousedown', onDown);
+  // 全局监听，支持拖 board / side / btn
+  document.addEventListener('touchstart', onDown, { passive: false });
+  document.addEventListener('mousedown', onDown);
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('mousemove', onMove);
   window.addEventListener('touchend', onUp);
   window.addEventListener('mouseup', onUp);
 
+  // 编辑时屏蔽按键游戏操作
   keys.forEach(function (k) {
-    const el = btnEls[k];
-    if (!el) return;
-    el.addEventListener('click', function (e) {
+    if (!btnEls[k]) return;
+    btnEls[k].addEventListener('click', function (e) {
       if (editMode) {
         e.stopImmediatePropagation();
         e.preventDefault();
@@ -215,30 +222,38 @@
     editMode = true;
     mask.classList.add('hidden');
     controls.classList.add('edit-mode');
+    boardWrap.classList.add('edit-target');
+    sidePanel.classList.add('edit-target');
     editBar.classList.remove('hidden');
   }
 
   function exitEditMode(doSave) {
     editMode = false;
-    dragKey = null;
+    dragTarget = null;
     controls.classList.remove('edit-mode');
+    boardWrap.classList.remove('edit-target');
+    sidePanel.classList.remove('edit-target');
     editBar.classList.add('hidden');
     if (doSave) save();
   }
 
-  const boardScaleInput = document.getElementById('boardScale');
-  const btnSizeInput = document.getElementById('btnSize');
-  const sideWidthInput = document.getElementById('sideWidth');
-  const showSideCheck = document.getElementById('showSide');
-  const ghostAlphaInput = document.getElementById('ghostAlpha');
+  // ---- 表单 ----
+  var boardWInput = document.getElementById('boardW');
+  var boardHInput = document.getElementById('boardH');
+  var btnSizeInput = document.getElementById('btnSize');
+  var sideWidthInput = document.getElementById('sideWidth');
+  var showSideCheck = document.getElementById('showSide');
+  var ghostAlphaInput = document.getElementById('ghostAlpha');
 
   function syncForm() {
-    boardScaleInput.value = cfg.boardScale;
-    document.getElementById('boardScaleVal').textContent = cfg.boardScale + '%';
+    boardWInput.value = cfg.boardW;
+    document.getElementById('boardWVal').textContent = cfg.boardW;
+    boardHInput.value = cfg.boardH;
+    document.getElementById('boardHVal').textContent = cfg.boardH;
     btnSizeInput.value = cfg.btnSize;
     document.getElementById('btnSizeVal').textContent = cfg.btnSize;
-    sideWidthInput.value = cfg.sideWidth;
-    document.getElementById('sideWVal').textContent = cfg.sideWidth;
+    sideWidthInput.value = cfg.sideW;
+    document.getElementById('sideWVal').textContent = cfg.sideW;
     showSideCheck.checked = !!cfg.showSide;
     ghostAlphaInput.value = cfg.ghostAlpha;
     document.getElementById('ghostAlphaVal').textContent = cfg.ghostAlpha + '%';
@@ -247,105 +262,98 @@
     });
   }
 
+  function readForm() {
+    cfg.boardW = +boardWInput.value;
+    cfg.boardH = +boardHInput.value;
+    cfg.btnSize = +btnSizeInput.value;
+    cfg.sideW = +sideWidthInput.value;
+    cfg.showSide = showSideCheck.checked;
+    cfg.ghostAlpha = +ghostAlphaInput.value;
+  }
+
   document.getElementById('settingsBtn').addEventListener('click', function () {
     if (editMode) exitEditMode(true);
     syncForm();
     mask.classList.remove('hidden');
   });
-
   document.getElementById('closeSettings').addEventListener('click', function () {
     mask.classList.add('hidden');
   });
-
   mask.addEventListener('click', function (e) {
     if (e.target === mask) mask.classList.add('hidden');
   });
 
-  boardScaleInput.addEventListener('input', function () {
-    cfg.boardScale = +boardScaleInput.value;
-    document.getElementById('boardScaleVal').textContent = cfg.boardScale + '%';
-    resizeBoard();
+  boardWInput.addEventListener('input', function () {
+    cfg.boardW = +boardWInput.value;
+    document.getElementById('boardWVal').textContent = cfg.boardW;
+    boardWrap.style.width = cfg.boardW + 'px';
   });
-
+  boardHInput.addEventListener('input', function () {
+    cfg.boardH = +boardHInput.value;
+    document.getElementById('boardHVal').textContent = cfg.boardH;
+    boardWrap.style.height = cfg.boardH + 'px';
+  });
   btnSizeInput.addEventListener('input', function () {
     cfg.btnSize = +btnSizeInput.value;
     document.getElementById('btnSizeVal').textContent = cfg.btnSize;
-    applyStyles();
+    document.documentElement.style.setProperty('--btn-size', cfg.btnSize + 'px');
   });
-
   sideWidthInput.addEventListener('input', function () {
-    cfg.sideWidth = +sideWidthInput.value;
-    document.getElementById('sideWVal').textContent = cfg.sideWidth;
-    applyStyles();
-    setTimeout(resizeBoard, 50);
+    cfg.sideW = +sideWidthInput.value;
+    document.getElementById('sideWVal').textContent = cfg.sideW;
+    sidePanel.style.width = cfg.sideW + 'px';
   });
-
   showSideCheck.addEventListener('change', function () {
     cfg.showSide = showSideCheck.checked;
-    applyStyles();
-    setTimeout(resizeBoard, 50);
+    applyAll();
   });
-
   ghostAlphaInput.addEventListener('input', function () {
     cfg.ghostAlpha = +ghostAlphaInput.value;
     document.getElementById('ghostAlphaVal').textContent = cfg.ghostAlpha + '%';
-    applyGhostAlpha();
+    applyGhost();
   });
 
   document.querySelectorAll('.layout-opt').forEach(function (el) {
     el.addEventListener('click', function () {
-      applyLayout(el.dataset.layout, true);
+      cfg.layout = el.dataset.layout;
+      cfg.btnPos = null;
+      applyAll();
+      document.querySelectorAll('.layout-opt').forEach(function (o) {
+        o.classList.toggle('active', o.dataset.layout === cfg.layout);
+      });
     });
   });
 
   document.getElementById('startEditBtn').addEventListener('click', function () {
-    cfg.boardScale = +boardScaleInput.value;
-    cfg.btnSize = +btnSizeInput.value;
-    cfg.sideWidth = +sideWidthInput.value;
-    cfg.showSide = showSideCheck.checked;
-    cfg.ghostAlpha = +ghostAlphaInput.value;
-    applyStyles();
-    placeButtons();
+    readForm();
+    applyAll();
     enterEditMode();
   });
-
   document.getElementById('doneEditBtn').addEventListener('click', function () {
     exitEditMode(true);
   });
-
   document.getElementById('resetLayout').addEventListener('click', function () {
-    cfg = Object.assign({}, defaults);
-    applyStyles();
-    applyLayout('sides', true);
+    cfg = defaultCfg();
+    applyAll();
     syncForm();
     save();
   });
-
   document.getElementById('saveSettings').addEventListener('click', function () {
-    cfg.boardScale = +boardScaleInput.value;
-    cfg.btnSize = +btnSizeInput.value;
-    cfg.sideWidth = +sideWidthInput.value;
-    cfg.showSide = showSideCheck.checked;
-    cfg.ghostAlpha = +ghostAlphaInput.value;
-    applyStyles();
-    placeButtons();
+    readForm();
+    applyAll();
     save();
     mask.classList.add('hidden');
   });
 
-  applyStyles();
-  requestAnimationFrame(function () {
-    placeButtons();
-    resizeBoard();
-  });
+  applyAll();
+  setTimeout(applyAll, 200);
+  setTimeout(applyAll, 600);
   window.addEventListener('resize', function () {
-    resizeBoard();
-    // 无自定义位置时按新屏幕重算预设
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      cfg.positions = null;
-      placeButtons();
-    }
+    // 仅限制不越界
+    var vw = window.innerWidth || 360;
+    var vh = window.innerHeight || 640;
+    cfg.boardX = Math.min(cfg.boardX, Math.max(0, vw - cfg.boardW));
+    cfg.boardY = Math.min(cfg.boardY, Math.max(0, vh - cfg.boardH));
+    applyAll();
   });
-  setTimeout(resizeBoard, 300);
-  setTimeout(function () { placeButtons(); resizeBoard(); }, 500);
 })();
