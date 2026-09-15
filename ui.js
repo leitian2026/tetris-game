@@ -1,6 +1,6 @@
-// 全自由布局：游戏框宽高完全独立
+// 宽高滑块独立：作为上限；实际游戏区取其中最大正方形格子并贴合外框
 (function () {
-  const STORAGE_KEY = 'tetris-ui-v7';
+  const STORAGE_KEY = 'tetris-ui-v8';
 
   function viewport() {
     return {
@@ -25,15 +25,10 @@
 
   function fitBoardSize() {
     var area = availableBoardArea();
-    // 尽量接近 1:2，但不强制
-    var w = area.maxW;
-    var h = Math.min(area.maxH, w * 2);
-    if (h < area.maxH * 0.85) {
-      h = area.maxH;
-      w = Math.min(area.maxW, Math.floor(h / 2));
-    }
-    w = Math.max(120, Math.floor(w));
-    h = Math.max(240, Math.floor(h));
+    var cell = Math.floor(Math.min(area.maxW / 10, area.maxH / 20));
+    cell = Math.max(10, cell);
+    var w = cell * 10;
+    var h = cell * 20;
     return {
       boardW: w,
       boardH: h,
@@ -66,6 +61,7 @@
   var editMode = false;
   var dragTarget = null;
   var dragOffset = { x: 0, y: 0 };
+  var sizingLock = false; // 避免 snap 回调和滑块互相打架
 
   var boardWrap = document.getElementById('boardWrap');
   var sidePanel = document.getElementById('sidePanel');
@@ -82,8 +78,8 @@
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return Object.assign(defaultCfg(), JSON.parse(raw));
+      localStorage.removeItem('tetris-ui-v7');
       localStorage.removeItem('tetris-ui-v6');
-      localStorage.removeItem('tetris-ui-v5');
     } catch (e) {}
     return defaultCfg();
   }
@@ -104,14 +100,27 @@
     }
   }
 
+  // game.js 贴合后回调实际尺寸
+  window.TETRIS_ON_BOARD_SIZED = function (w, h) {
+    if (sizingLock) return;
+    cfg.boardW = w;
+    cfg.boardH = h;
+    if (boardWInput) {
+      boardWInput.value = w;
+      document.getElementById('boardWVal').textContent = w;
+    }
+    if (boardHInput) {
+      boardHInput.value = h;
+      document.getElementById('boardHVal').textContent = h;
+    }
+  };
+
   function updateSliderLimits() {
     var v = viewport();
     boardWInput.max = Math.max(200, v.vw - 8);
     boardHInput.max = Math.max(300, v.vh - 8);
     boardWInput.min = 100;
     boardHInput.min = 200;
-    if (cfg.boardW > +boardWInput.max) cfg.boardW = +boardWInput.max;
-    if (cfg.boardH > +boardHInput.max) cfg.boardH = +boardHInput.max;
   }
 
   function presetBtnPos(layout) {
@@ -159,11 +168,14 @@
     };
   }
 
+  /** 先按用户设定的宽高设外框，再由 game 贴合正方形格子 */
   function applyBoardBox() {
+    sizingLock = true;
     boardWrap.style.width = cfg.boardW + 'px';
     boardWrap.style.height = cfg.boardH + 'px';
     boardWrap.style.left = cfg.boardX + 'px';
     boardWrap.style.top = cfg.boardY + 'px';
+    sizingLock = false;
     resizeCanvas();
   }
 
@@ -347,16 +359,21 @@
     if (e.target === mask) mask.classList.add('hidden');
   });
 
-  // 宽、高完全独立
+  // 宽、高独立调节上限；贴合后两边都会变成实际 1:2 尺寸
   boardWInput.addEventListener('input', function () {
     cfg.boardW = +boardWInput.value;
     document.getElementById('boardWVal').textContent = cfg.boardW;
-    applyBoardBox();
+    // 临时用当前高度作上限，让正方形能随宽度变大
+    boardWrap.style.width = cfg.boardW + 'px';
+    boardWrap.style.height = Math.max(cfg.boardH, cfg.boardW * 2) + 'px';
+    resizeCanvas();
   });
   boardHInput.addEventListener('input', function () {
     cfg.boardH = +boardHInput.value;
     document.getElementById('boardHVal').textContent = cfg.boardH;
-    applyBoardBox();
+    boardWrap.style.height = cfg.boardH + 'px';
+    boardWrap.style.width = Math.max(cfg.boardW, Math.floor(cfg.boardH / 2)) + 'px';
+    resizeCanvas();
   });
 
   btnSizeInput.addEventListener('input', function () {
