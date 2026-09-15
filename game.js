@@ -1,37 +1,36 @@
 // 俄罗斯方块核心逻辑
 const COLS = 10;
 const ROWS = 20;
-const BLOCK = 30;
+let BLOCK = 30; // 动态正方形边长
 
 const COLORS = [
   null,
-  '#00f0f0', // I - cyan
-  '#0000f0', // J - blue
-  '#f0a000', // L - orange
-  '#f0f000', // O - yellow
-  '#00f000', // S - green
-  '#a000f0', // T - purple
-  '#f00000', // Z - red
+  '#00f0f0', // I
+  '#0000f0', // J
+  '#f0a000', // L
+  '#f0f000', // O
+  '#00f000', // S
+  '#a000f0', // T
+  '#f00000', // Z
 ];
 
 const SHAPES = [
   [],
-  [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], // I
-  [[2,0,0],[2,2,2],[0,0,0]],                 // J
-  [[0,0,3],[3,3,3],[0,0,0]],                 // L
-  [[4,4],[4,4]],                             // O
-  [[0,5,5],[5,5,0],[0,0,0]],                 // S
-  [[0,6,0],[6,6,6],[0,0,0]],                 // T
-  [[7,7,0],[0,7,7],[0,0,0]],                 // Z
+  [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+  [[2,0,0],[2,2,2],[0,0,0]],
+  [[0,0,3],[3,3,3],[0,0,0]],
+  [[4,4],[4,4]],
+  [[0,5,5],[5,5,0],[0,0,0]],
+  [[0,6,0],[6,6,6],[0,0,0]],
+  [[7,7,0],[0,7,7],[0,0,0]],
 ];
 
-// 画布
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next');
 const nextCtx = nextCanvas.getContext('2d');
+const boardWrap = document.getElementById('boardWrap');
 
-// DOM
 const scoreEl = document.getElementById('score');
 const levelEl = document.getElementById('level');
 const linesEl = document.getElementById('lines');
@@ -54,10 +53,33 @@ let running = false;
 let paused = false;
 let gameOver = false;
 
-// 默认幽灵透明度，可被 ui.js 覆盖
 if (typeof window.TETRIS_GHOST_ALPHA !== 'number') {
   window.TETRIS_GHOST_ALPHA = 0.25;
 }
+
+/**
+ * 根据外框尺寸计算正方形格子，避免非等比拉伸导致旋转后形状大小不一致
+ */
+function syncCanvasSize() {
+  if (!boardWrap) return;
+  const dw = boardWrap.clientWidth || 200;
+  const dh = boardWrap.clientHeight || 400;
+  // 取能完整放进外框的最大正方形格子
+  const cell = Math.max(8, Math.floor(Math.min(dw / COLS, dh / ROWS)));
+  BLOCK = cell;
+  const cw = cell * COLS;
+  const ch = cell * ROWS;
+  if (canvas.width !== cw || canvas.height !== ch) {
+    canvas.width = cw;
+    canvas.height = ch;
+  }
+  // CSS 也设成同样像素，保证不拉伸
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  draw();
+  drawNext();
+}
+window.TETRIS_RESIZE_CANVAS = syncCanvasSize;
 
 function createMatrix(w, h) {
   const m = [];
@@ -201,7 +223,8 @@ function resetPiece() {
   drawNext();
 }
 
-function drawMatrix(matrix, offset, context, blockSize = BLOCK) {
+function drawMatrix(matrix, offset, context, blockSize) {
+  if (blockSize == null) blockSize = BLOCK;
   matrix.forEach((row, y) => {
     row.forEach((val, x) => {
       if (val !== 0) {
@@ -217,7 +240,7 @@ function drawMatrix(matrix, offset, context, blockSize = BLOCK) {
           (x + offset.x) * blockSize,
           (y + offset.y) * blockSize,
           blockSize - 1,
-          4
+          Math.max(2, Math.floor(blockSize * 0.12))
         );
       }
     });
@@ -261,7 +284,6 @@ function draw() {
       drawMatrix(ghost.matrix, ghost.pos, ctx);
       ctx.globalAlpha = 1;
     }
-
     drawMatrix(piece.matrix, piece.pos, ctx);
   }
 }
@@ -399,8 +421,11 @@ canvas.addEventListener('touchend', e => {
   }
 }, { passive: false });
 
-draw();
-drawNext();
+// 初始同步画布为正方形格子
+syncCanvasSize();
+setTimeout(syncCanvasSize, 100);
+setTimeout(syncCanvasSize, 400);
+window.addEventListener('resize', syncCanvasSize);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
