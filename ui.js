@@ -389,20 +389,34 @@
     }
   });
 
-  // 宽、高独立调节上限；贴合后两边都会变成实际 1:2 尺寸
+  // 宽、高独立调节上限。
+  // 之前的 bug：拖动过程中就调用 resizeCanvas()，game.js 贴合出正方形格子后
+  // 会回调 TETRIS_ON_BOARD_SIZED，把另一个还没动过的滑块的值也一起覆盖掉，
+  // 导致宽高看起来被锁在同一个比例上、无法真正分开调节。
+  // 修复：拖动中（input）只预览外框、只改动当前这个滑块自己的 cfg 值，不触发贴合；
+  // 松手后（change）才用两个独立设定的上限一起做一次真正贴合。
   boardWInput.addEventListener('input', function () {
     cfg.boardW = +boardWInput.value;
     document.getElementById('boardWVal').textContent = cfg.boardW;
-    // 临时用当前高度作上限，让正方形能随宽度变大
+    // 临时用当前高度作上限，仅用于拖动时的预览，不写回 cfg.boardH / 高度滑块
     boardWrap.style.width = cfg.boardW + 'px';
     boardWrap.style.height = Math.max(cfg.boardH, cfg.boardW * 2) + 'px';
+  });
+  boardWInput.addEventListener('change', function () {
+    boardWrap.style.width = cfg.boardW + 'px';
+    boardWrap.style.height = cfg.boardH + 'px';
     resizeCanvas();
   });
   boardHInput.addEventListener('input', function () {
     cfg.boardH = +boardHInput.value;
     document.getElementById('boardHVal').textContent = cfg.boardH;
+    // 临时用当前宽度作上限，仅用于拖动时的预览，不写回 cfg.boardW / 宽度滑块
     boardWrap.style.height = cfg.boardH + 'px';
     boardWrap.style.width = Math.max(cfg.boardW, Math.floor(cfg.boardH / 2)) + 'px';
+  });
+  boardHInput.addEventListener('change', function () {
+    boardWrap.style.height = cfg.boardH + 'px';
+    boardWrap.style.width = cfg.boardW + 'px';
     resizeCanvas();
   });
 
