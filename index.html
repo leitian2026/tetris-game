@@ -57,17 +57,30 @@
     }
     .side {
       position: absolute;
-      display: flex; flex-direction: column; gap: 8px;
+      display: flex; flex-direction: column; gap: 6px;
       z-index: 15; touch-action: none;
     }
     .side.hidden-side { display: none !important; }
     .side.edit-target { outline: 2px dashed #fbbf24; outline-offset: 2px; border-radius: 8px; }
     .panel {
       background: #1e293b; border-radius: 10px; border: 1px solid #334155;
-      padding: 6px; text-align: center;
+      padding: 5px; text-align: center;
     }
     .panel-title { font-size: 0.65rem; color: #94a3b8; margin-bottom: 4px; }
-    #next { display: block; margin: 0 auto; image-rendering: pixelated; width: 100%; height: auto; }
+    #next, #hold { display: block; margin: 0 auto; image-rendering: pixelated; width: 100%; height: auto; }
+    #holdPanel { cursor: pointer; }
+    .toast {
+      position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%) scale(0.8);
+      font-weight: 800; font-size: 1.3rem; letter-spacing: 1px;
+      color: #38bdf8; text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+      opacity: 0; pointer-events: none; z-index: 8;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .toast.tetris { color: #fbbf24; font-size: 1.6rem; }
+    .toast.combo { color: #f472b6; }
+    .toast.level { color: #4ade80; }
     .btn {
       background: #334155; border: none; color: #e2e8f0;
       padding: 9px 6px; border-radius: 8px;
@@ -120,6 +133,7 @@
       gap: 14px; z-index: 10; border-radius: 10px;
     }
     .overlay.hidden { display: none; }
+    #newBestBadge.hidden { display: none; }
     .overlay h2 { font-size: 1.4rem; font-weight: 800; }
     .overlay p { color: #94a3b8; font-size: 0.9rem; }
     .overlay .btn { width: auto; padding: 12px 28px; font-size: 1rem; }
@@ -182,6 +196,7 @@
           <div class="stat"><div class="stat-label">等级</div><div class="stat-value" id="level">1</div></div>
           <div class="stat"><div class="stat-label">消除</div><div class="stat-value" id="lines">0</div></div>
         </div>
+        <button class="icon-btn" id="soundBtn" title="音效开关">🔊</button>
         <button class="icon-btn" id="settingsBtn">⚙</button>
       </div>
     </div>
@@ -189,9 +204,11 @@
     <div class="stage" id="stage">
       <div class="board-wrap" id="boardWrap" data-drag="board">
         <canvas id="board" width="300" height="600"></canvas>
+        <div class="toast" id="toast"></div>
         <div class="overlay" id="startOverlay">
           <h2>俄罗斯方块</h2>
           <p>点击开始游戏</p>
+          <p style="font-size:0.8rem;">历史最高：<span id="bestStart">0</span></p>
           <button class="btn btn-primary" id="startBtn">开始</button>
         </div>
         <div class="overlay hidden" id="pauseOverlay">
@@ -201,14 +218,20 @@
         <div class="overlay hidden" id="gameoverOverlay">
           <h2>游戏结束</h2>
           <p id="finalScore">分数: 0</p>
+          <p style="font-size:0.8rem;">历史最高：<span id="bestFinal">0</span></p>
+          <p id="newBestBadge" class="hidden" style="color:#fbbf24;font-weight:700;">🎉 新纪录！</p>
           <button class="btn btn-primary" id="restartBtn">再来一局</button>
         </div>
       </div>
 
       <div class="side" id="sidePanel" data-drag="side">
+        <div class="panel" id="holdPanel" title="点击暂存方块（键盘 C）">
+          <div class="panel-title">暂存 C</div>
+          <canvas id="hold" width="46" height="46"></canvas>
+        </div>
         <div class="panel" id="nextPanel">
           <div class="panel-title">下一个</div>
-          <canvas id="next" width="72" height="72"></canvas>
+          <canvas id="next" width="60" height="98"></canvas>
         </div>
         <button class="btn" id="pauseBtn">暂停</button>
         <button class="btn btn-danger" id="resetBtn">重开</button>
@@ -245,6 +268,10 @@
       <div class="setting-item" style="margin-top:14px;">
         <label>预测落点透明度 <span id="ghostAlphaVal">25%</span></label>
         <input type="range" id="ghostAlpha" min="0" max="60" value="25" />
+      </div>
+
+      <div class="setting-item">
+        <label><input type="checkbox" id="soundToggle" checked /> 开启音效</label>
       </div>
 
       <div class="section-title">侧边面板</div>

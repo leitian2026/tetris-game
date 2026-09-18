@@ -1,10 +1,12 @@
-const CACHE = 'tetris-v2';
+const CACHE = 'tetris-v3';
 const ASSETS = [
   './',
   './index.html',
   './game.js',
   './ui.js',
-  './manifest.json'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', e => {

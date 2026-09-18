@@ -53,7 +53,8 @@
       btnSize: 56,
       ghostAlpha: 25,
       layout: 'sides',
-      btnPos: null
+      btnPos: null,
+      soundOn: true
     };
   }
 
@@ -90,6 +91,12 @@
 
   function applyGhost() {
     window.TETRIS_GHOST_ALPHA = Math.max(0, Math.min(60, cfg.ghostAlpha || 0)) / 100;
+  }
+
+  function applySound() {
+    if (typeof window.TETRIS_SET_SOUND === 'function') window.TETRIS_SET_SOUND(!!cfg.soundOn);
+    if (soundBtn) soundBtn.textContent = cfg.soundOn ? '🔊' : '🔇';
+    if (soundToggle) soundToggle.checked = !!cfg.soundOn;
   }
 
   function resizeCanvas() {
@@ -134,6 +141,14 @@
       var leftX = pad;
       var rightX = w - s - pad;
       var baseY = h - safeBottom - s * 3 - 28;
+      // 侧栏内容变多变高后，避免和右侧的旋转/下落按钮重叠
+      if (sidePanel && cfg.showSide) {
+        var panelBottom = cfg.sideY + (sidePanel.offsetHeight || 160) + 10;
+        var maxBaseY = h - 10 - (s * 3 + 20);
+        if (panelBottom > baseY) {
+          baseY = Math.min(panelBottom, maxBaseY);
+        }
+      }
       return {
         left: { x: leftX, y: baseY },
         down: { x: leftX, y: baseY + s + 10 },
@@ -203,6 +218,7 @@
     if (!cfg.btnPos) cfg.btnPos = JSON.parse(JSON.stringify(pos));
 
     applyGhost();
+    applySound();
   }
 
   function getPoint(e) {
@@ -298,6 +314,7 @@
     sidePanel.classList.remove('edit-target');
     editBar.classList.add('hidden');
     if (doSave) save();
+    if (typeof window.TETRIS_SET_SETTINGS_PAUSE === 'function') window.TETRIS_SET_SETTINGS_PAUSE(false);
   }
 
   var boardWInput = document.getElementById('boardW');
@@ -306,6 +323,8 @@
   var sideWidthInput = document.getElementById('sideWidth');
   var showSideCheck = document.getElementById('showSide');
   var ghostAlphaInput = document.getElementById('ghostAlpha');
+  var soundBtn = document.getElementById('soundBtn');
+  var soundToggle = document.getElementById('soundToggle');
 
   function syncForm() {
     updateSliderLimits();
@@ -320,6 +339,7 @@
     showSideCheck.checked = !!cfg.showSide;
     ghostAlphaInput.value = cfg.ghostAlpha;
     document.getElementById('ghostAlphaVal').textContent = cfg.ghostAlpha + '%';
+    if (soundToggle) soundToggle.checked = !!cfg.soundOn;
     document.querySelectorAll('.layout-opt').forEach(function (el) {
       el.classList.toggle('active', el.dataset.layout === cfg.layout);
     });
@@ -332,6 +352,7 @@
     cfg.sideW = +sideWidthInput.value;
     cfg.showSide = showSideCheck.checked;
     cfg.ghostAlpha = +ghostAlphaInput.value;
+    if (soundToggle) cfg.soundOn = soundToggle.checked;
   }
 
   function doFitBoard() {
@@ -347,16 +368,25 @@
     syncForm();
   }
 
+  function pauseForSettings(open) {
+    if (typeof window.TETRIS_SET_SETTINGS_PAUSE === 'function') window.TETRIS_SET_SETTINGS_PAUSE(open);
+  }
+
   document.getElementById('settingsBtn').addEventListener('click', function () {
     if (editMode) exitEditMode(true);
     syncForm();
     mask.classList.remove('hidden');
+    pauseForSettings(true);
   });
   document.getElementById('closeSettings').addEventListener('click', function () {
     mask.classList.add('hidden');
+    pauseForSettings(false);
   });
   mask.addEventListener('click', function (e) {
-    if (e.target === mask) mask.classList.add('hidden');
+    if (e.target === mask) {
+      mask.classList.add('hidden');
+      pauseForSettings(false);
+    }
   });
 
   // 宽、高独立调节上限；贴合后两边都会变成实际 1:2 尺寸
@@ -395,6 +425,20 @@
     document.getElementById('ghostAlphaVal').textContent = cfg.ghostAlpha + '%';
     applyGhost();
   });
+  if (soundBtn) {
+    soundBtn.addEventListener('click', function () {
+      cfg.soundOn = !cfg.soundOn;
+      applySound();
+      save();
+    });
+  }
+  if (soundToggle) {
+    soundToggle.addEventListener('change', function () {
+      cfg.soundOn = soundToggle.checked;
+      applySound();
+      save();
+    });
+  }
 
   document.getElementById('fitBoardBtn').addEventListener('click', function () {
     readForm();
@@ -432,6 +476,7 @@
     applyAll();
     save();
     mask.classList.add('hidden');
+    pauseForSettings(false);
   });
 
   if (!localStorage.getItem(STORAGE_KEY)) {
